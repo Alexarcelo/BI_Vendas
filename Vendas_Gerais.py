@@ -726,13 +726,13 @@ if not 'base_luck' in st.session_state:
 
         st.session_state.lista_colunas_data_df_reembolsos = ['Data_venc']
 
-st.title('Vendas Gerais')
+st.title('Vendas Gerais por Setor')
 
 st.divider()
 
 if not 'df_vendas' in st.session_state:
 
-    with st.spinner('Puxando vendas manuais, reembolsos, metas de vendedores, metas de setores...'):
+    with st.spinner('Puxando vendas manuais, reembolsos, metas de vendedores, metas de setores, configurações...'):
 
         gerar_df_vendas_manuais()
 
@@ -741,6 +741,8 @@ if not 'df_vendas' in st.session_state:
         gerar_df_metas_vendedor()
 
         gerar_df_metas()
+
+        puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'Configurações Vendas', 'df_config')
 
     with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
 
@@ -894,9 +896,7 @@ with col1:
 
 row0 = st.columns(2)
 
-passeios_incluidos = ['PRAIAS DA COSTA DO CONDE', 'ILHA DE AREIA VERMELHA', 'CITY TOUR', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
-                      'PISCINAS DO EXTREMO ORIENTAL', 'PRAIA BELA', 'CATAMARÃ DO FORRÓ', 'BY NIGHT PARAHYBA OXENTE ', 'INGRESSO - BY NIGHT ', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ', 
-                      'TRILHA DOS MIRANTES DA COSTA DO CONDE', 'TRILHA DOS COQUEIRAIS']
+passeios_incluidos = st.session_state.df_config[st.session_state.df_config['Configuração']=='Passeios Gráfico Pizza']['Parâmetro'].tolist()
 
 if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
