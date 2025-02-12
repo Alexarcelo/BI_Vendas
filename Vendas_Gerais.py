@@ -790,11 +790,23 @@ with col1:
 
         lista_vendedor, lista_canal, lista_hotel = criar_listas_vendedor_canal_hotel(df_vendas)
 
-        seleciona_canal = st.multiselect('Canal de Vendas', lista_canal, key='Can_on')
+        if seleciona_setor[0]=='VENDAS ONLINE':
+
+            seleciona_canal = st.multiselect('Canal de Vendas', lista_canal, key='Can_on')
+
+        else:
+
+            seleciona_canal = []
 
         seleciona_vend = st.multiselect('Vendedor', lista_vendedor, key='Ven_on')
 
-        seleciona_hotel = st.multiselect('Hotel', lista_hotel, key='Hot_on')
+        if seleciona_setor[0]=='HOTEL VENDAS':
+
+            seleciona_hotel = st.multiselect('Hotel', lista_hotel, key='Hot_on')
+
+        else:
+
+            seleciona_hotel = []
 
         df_vendas = filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona_vend, seleciona_hotel)
 
@@ -854,7 +866,7 @@ with col1:
 
             st.dataframe(df_estilizado, hide_index=True, use_container_width=True)
 
-            if seleciona_vend:
+            if seleciona_vend and seleciona_setor[0]=='HOTEL VENDAS' and len(seleciona_setor)==1:
 
                 df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']] = df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
 
@@ -883,8 +895,8 @@ with col1:
 row0 = st.columns(2)
 
 passeios_incluidos = ['PRAIAS DA COSTA DO CONDE', 'ILHA DE AREIA VERMELHA', 'CITY TOUR', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
-                        'PISCINAS DO EXTREMO ORIENTAL', 'PRAIA BELA', 'CATAMARÃ DO FORRÓ', 'BY NIGHT PARAHYBA OXENTE ', 'INGRESSO - BY NIGHT ', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ', 
-                        'TRILHA DOS MIRANTES DA COSTA DO CONDE', 'TRILHA DOS COQUEIRAIS']
+                      'PISCINAS DO EXTREMO ORIENTAL', 'PRAIA BELA', 'CATAMARÃ DO FORRÓ', 'BY NIGHT PARAHYBA OXENTE ', 'INGRESSO - BY NIGHT ', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ', 
+                      'TRILHA DOS MIRANTES DA COSTA DO CONDE', 'TRILHA DOS COQUEIRAIS']
 
 if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
