@@ -387,7 +387,8 @@ def gerar_lista_setor():
 
     lista_setor.insert(0, '--- Todos ---')
 
-    lista_setor = [item for item in lista_setor if item not in ['COORD. FINANCEIRO', 'COORD. VENDAS', 'LOGISTICA', 'SAC', 'GUIA / TOUR AZUL', 'GUIA', 'PDV', 'PLANEJAMENTO ESTRATÉGICO', 'COMERCIAL']]
+    lista_setor = [item for item in lista_setor if item not in ['COORD. FINANCEIRO', 'COORD. VENDAS', 'LOGISTICA', 'SAC', 'GUIA TOUR AZUL', 'PLANEJAMENTO ESTRATÉGICO', 'COMERCIAL', 'DIRETORA', 
+                                                                'SUP. EXPERIÊNCIA AO CLIENTE/SAC']]
 
     return lista_setor
 
@@ -725,7 +726,7 @@ if not 'base_luck' in st.session_state:
 
         st.session_state.lista_colunas_data_df_reembolsos = ['Data_venc']
 
-st.title('Hotel Vendas / Vendas Online')
+st.title('Vendas Gerais')
 
 st.divider()
 
@@ -783,103 +784,101 @@ with col1:
 
         df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
 
-        if len(seleciona_setor)>0:
+        if not '--- Todos ---' in seleciona_setor:
 
-            if not '--- Todos ---' in seleciona_setor:
+            df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
 
-                df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
+        lista_vendedor, lista_canal, lista_hotel = criar_listas_vendedor_canal_hotel(df_vendas)
 
-            lista_vendedor, lista_canal, lista_hotel = criar_listas_vendedor_canal_hotel(df_vendas)
+        seleciona_canal = st.multiselect('Canal de Vendas', lista_canal, key='Can_on')
 
-            seleciona_canal = st.multiselect('Canal de Vendas', lista_canal, key='Can_on')
+        seleciona_vend = st.multiselect('Vendedor', lista_vendedor, key='Ven_on')
 
-            seleciona_vend = st.multiselect('Vendedor', lista_vendedor, key='Ven_on')
+        seleciona_hotel = st.multiselect('Hotel', lista_hotel, key='Hot_on')
 
-            seleciona_hotel = st.multiselect('Hotel', lista_hotel, key='Hot_on')
+        df_vendas = filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona_vend, seleciona_hotel)
 
-            df_vendas = filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona_vend, seleciona_hotel)
+        df_hotel = gerar_df_hotel(df_vendas)
 
-            df_hotel = gerar_df_hotel(df_vendas)
+        df_vendas = adicionar_colunas_paxs_in_total_paxs_ajuste_colunas_float(df_vendas, df_guias_in)
 
-            df_vendas = adicionar_colunas_paxs_in_total_paxs_ajuste_colunas_float(df_vendas, df_guias_in)
+        df_contador = gerar_df_contador(df_vendas)
 
-            df_contador = gerar_df_contador(df_vendas)
+        df_vendas = ajustar_desconto_global(df_vendas)
 
-            df_vendas = ajustar_desconto_global(df_vendas)
+        df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_reembolsos, df_contador, df_metas_vendedor)
 
-            df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_reembolsos, df_contador, df_metas_vendedor)
+        df_cont_passeio = df_vendas.groupby(['Vendedor', 'Nome_Servico'], as_index=False)['Total Paxs'].sum()
 
-            df_cont_passeio = df_vendas.groupby(['Vendedor', 'Nome_Servico'], as_index=False)['Total Paxs'].sum()
+        with col2:
+                
+            col2_1, col2_2 = st.columns([2,5])
 
-with col2:
-        
-    col2_1, col2_2 = st.columns([2,5])
+            with col2_1:
 
-    with col2_1:
+                with st.container():
 
-        with st.container():
+                    soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto = gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_vendas)
 
-            soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto = gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_vendas)
+                    if len(seleciona_setor)==1 and seleciona_setor[0]=='--- Todos ---':
 
-            if len(seleciona_setor)==1 and seleciona_setor[0]=='--- Todos ---':
+                        meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado_todos_setores(df_vendas_agrupado, soma_vendas)
 
-                meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado_todos_setores(df_vendas_agrupado, soma_vendas)
+                    else:
+
+                        meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado_setor_especifico(df_vendas_agrupado, soma_vendas)
+
+                    plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
+
+                    plotar_quadrados_html('Meta Estimada', meta_esperada_formatada)
+
+                    plotar_quadrados_html('Meta de TM', tm_setor_estip)
+
+                    plotar_quadrados_html('Total Descontos', formatar_moeda(total_desconto))
+
+            with col2_2:
+                    
+                with st.container():
+
+                    plotar_quadrados_html('% Alcancado', perc_alcancado)
+
+                    plotar_quadrados_html('Paxs Recebidos', paxs_recebidos)
+
+                    plotar_quadrados_html('Meta Atingida', formatar_moeda(tm_vendas))
+
+                    plotar_quadrados_html('Media de Descontos', med_desconto)
+
+        with col3:
+
+            df_estilizado = gerar_df_estilizado(df_vendas_agrupado)
+
+            st.dataframe(df_estilizado, hide_index=True, use_container_width=True)
+
+            if seleciona_vend:
+
+                df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']] = df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
+
+                st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Valor_Venda']], hide_index=True, use_container_width=True)
+            
+            if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
+
+                df_setor_agrupado = df_vendas_agrupado.groupby('Setor', as_index=False)['Venda_Filtrada'].sum()
+
+                if not df_setor_agrupado.empty:
+
+                    fig = gerar_grafico_todos_setores(df_setor_agrupado)
 
             else:
+                
+                if not df_vendas_agrupado.empty:
 
-                meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado_setor_especifico(df_vendas_agrupado, soma_vendas)
+                    fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
 
-            plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
+                else:
 
-            plotar_quadrados_html('Meta Estimada', meta_esperada_formatada)
+                    fig = gerar_grafico_sem_dados()
 
-            plotar_quadrados_html('Meta de TM', tm_setor_estip)
-
-            plotar_quadrados_html('Total Descontos', formatar_moeda(total_desconto))
-
-    with col2_2:
-            
-        with st.container():
-
-            plotar_quadrados_html('% Alcancado', perc_alcancado)
-
-            plotar_quadrados_html('Paxs Recebidos', paxs_recebidos)
-
-            plotar_quadrados_html('Meta Atingida', formatar_moeda(tm_vendas))
-
-            plotar_quadrados_html('Media de Descontos', med_desconto)
-
-with col3:
-
-    df_estilizado = gerar_df_estilizado(df_vendas_agrupado)
-
-    st.dataframe(df_estilizado, hide_index=True, use_container_width=True)
-
-    if seleciona_vend:
-
-        df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']] = df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
-
-        st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Valor_Venda']], hide_index=True, use_container_width=True)
-    
-    if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
-
-        df_setor_agrupado = df_vendas_agrupado.groupby('Setor', as_index=False)['Venda_Filtrada'].sum()
-
-        if not df_setor_agrupado.empty:
-
-            fig = gerar_grafico_todos_setores(df_setor_agrupado)
-
-    else:
-        
-        if not df_vendas_agrupado.empty:
-
-            fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
-
-        else:
-
-            fig = gerar_grafico_sem_dados()
-
-    st.plotly_chart(fig, key="key_1")
+            st.plotly_chart(fig, key="key_1")
 
 row0 = st.columns(2)
 
@@ -897,7 +896,7 @@ if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
         st.plotly_chart(fig)
 
-else:
+elif len(seleciona_setor)>0:
 
     coluna = 0
 
@@ -920,4 +919,3 @@ else:
             else:
 
                 coluna = 0
-
