@@ -920,14 +920,8 @@ elif len(seleciona_setor)>0:
 
             fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, passeios_incluidos)
 
-            with row0[coluna]:
+            with row0[coluna%2]:
         
                 st.plotly_chart(fig)
 
-            if coluna==0:
-
-                coluna = 1
-
-            else:
-
-                coluna = 0
+            coluna+=1
