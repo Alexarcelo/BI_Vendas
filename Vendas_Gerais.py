@@ -625,7 +625,7 @@ st.title('Vendas Gerais por Setor')
 
 st.divider()
 
-if not 'df_vendas' in st.session_state:
+if any(key not in st.session_state for key in ['df_reembolsos', 'df_metas_vendedor', 'df_metas', 'df_config', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in']):
 
     with st.spinner('Puxando reembolsos, metas de vendedores, metas de setores e configurações...'):
 
