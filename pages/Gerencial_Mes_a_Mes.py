@@ -8,55 +8,7 @@ import numpy as np
 from babel.numbers import format_currency
 import plotly.express as px
 import locale
-
-def gerar_df_phoenix(base_luck, request_select):
-    
-    config = {'user': 'user_automation_jpa', 'password': 'luck_jpa_2024', 'host': 'comeia.cixat7j68g0n.us-east-1.rds.amazonaws.com', 'database': base_luck}
-
-    conexao = mysql.connector.connect(**config)
-
-    cursor = conexao.cursor()
-
-    request_name = request_select
-
-    cursor.execute(request_name)
-
-    resultado = cursor.fetchall()
-    
-    cabecalho = [desc[0] for desc in cursor.description]
-
-    cursor.close()
-
-    conexao.close()
-
-    df = pd.DataFrame(resultado, columns=cabecalho)
-
-    df = df.applymap(lambda x: float(x) if isinstance(x, decimal.Decimal) else x)
-
-    return df
-
-def gerar_df_vendas():
-
-    request_select = '''
-        SELECT 
-            Canal_de_Vendas,
-            Vendedor,
-            Nome_Segundo_Vendedor,
-            Status_Financeiro,
-            Data_Venda,
-            Valor_Venda,
-            Nome_Estabelecimento_Origem,
-            Desconto_Global_Por_Servico,
-            Desconto_Global,
-            Nome_Parceiro,
-            Cod_Reserva,
-            Nome_Servico,
-            `Total ADT`,
-            `Total CHD`
-        FROM vw_sales
-        '''
-    
-    st.session_state.df_vendas = gerar_df_phoenix(st.session_state.base_luck, request_select)
+from datetime import date
 
 def puxar_aba_simples(id_gsheet, nome_aba, nome_df):
 
@@ -88,14 +40,6 @@ def tratar_colunas_data_df(df, lista_colunas):
 
         df[coluna] = pd.to_datetime(df[coluna], format='%d/%m/%Y').dt.date
 
-def gerar_df_vendas_manuais():
-
-    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Vendas Manuais', 'df_vendas_manuais')
-
-    tratar_colunas_numero_df(st.session_state.df_vendas_manuais, st.session_state.lista_colunas_numero_df_vendas_manuais)
-
-    tratar_colunas_data_df(st.session_state.df_vendas_manuais, st.session_state.lista_colunas_data_df_vendas_manuais)
-
 def gerar_df_reembolsos():
 
     puxar_aba_simples(st.session_state.id_gsheet_reembolsos, 'BD - Geral', 'df_reembolsos')
@@ -108,73 +52,159 @@ def gerar_df_reembolsos():
     
     st.session_state.df_reembolsos['Mes'] = pd.to_datetime(st.session_state.df_reembolsos['Data_venc']).dt.month
 
-def ajustar_nomes_leticia_soraya(df_vendas):
+def gerar_df_metas():
 
-    df_vendas['Vendedor'] = df_vendas['Vendedor'].replace('SORAYA - TRANSFERISTA', 'SORAYA - GUIA')
+    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Metas', 'df_metas')
 
-    df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year>=2025), 'Vendedor'] = 'LETICIA - GUIA'
+    tratar_colunas_numero_df(st.session_state.df_metas, st.session_state.lista_colunas_numero_df_metas)
 
-    df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year<2025), 'Vendedor'] = 'LETICIA - PDV'
+    tratar_colunas_data_df(st.session_state.df_metas, st.session_state.lista_colunas_data_df_metas)
 
-    return df_vendas
+    st.session_state.df_metas['Mes_Ano'] = pd.to_datetime(st.session_state.df_metas['Data']).dt.to_period('M')
 
-def ajustar_pdvs_facebook(df_vendas):
+    st.session_state.df_metas['Meta_Total'] = st.session_state.df_metas['Meta_Guia'] + st.session_state.df_metas['Meta_PDV'] + st.session_state.df_metas['Meta_HV'] + \
+        st.session_state.df_metas['Meta_Grupos'] + st.session_state.df_metas['Meta_VendasOnline']
 
-    mask_ref = (df_vendas['Vendedor'].isin(['RAQUEL - PDV', 'VALERIA - PDV', 'ROBERTA - PDV', 'LETICIA - PDV'])) & (pd.to_datetime(df_vendas['Data_Venda']).dt.year<2025) & \
-        (df_vendas['Canal_de_Vendas']=='Facebook')
+def gerar_df_historico():
 
-    df_vendas.loc[mask_ref, 'Vendedor'] = df_vendas.loc[mask_ref, 'Vendedor'].apply(lambda x: x.replace('- PDV', '- GUIA'))
+    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Historico', 'df_historico')
 
-    return df_vendas
+    tratar_colunas_numero_df(st.session_state.df_historico, st.session_state.lista_colunas_numero_df_historico)
+
+    tratar_colunas_data_df(st.session_state.df_historico, st.session_state.lista_colunas_data_df_historico)
+
+    st.session_state.df_historico['Ano'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.year
+    
+    st.session_state.df_historico['Mes'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.month
+    
+    st.session_state.df_historico['Mes_Ano'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.to_period('M')
+
+def gerar_df_phoenix(base_luck, request_select):
+    
+    config = {'user': 'user_automation_jpa', 'password': 'luck_jpa_2024', 'host': 'comeia.cixat7j68g0n.us-east-1.rds.amazonaws.com', 'database': base_luck}
+
+    conexao = mysql.connector.connect(**config)
+
+    cursor = conexao.cursor()
+
+    request_name = request_select
+
+    cursor.execute(request_name)
+
+    resultado = cursor.fetchall()
+    
+    cabecalho = [desc[0] for desc in cursor.description]
+
+    cursor.close()
+
+    conexao.close()
+
+    df = pd.DataFrame(resultado, columns=cabecalho)
+
+    df = df.applymap(lambda x: float(x) if isinstance(x, decimal.Decimal) else x)
+
+    return df
 
 def gerar_df_vendas_final():
 
+    def gerar_df_vendas_phoenix():
+
+        request_select = '''SELECT Canal_de_Vendas, Vendedor, Nome_Segundo_Vendedor, Status_Financeiro, Data_Venda, Valor_Venda, Nome_Estabelecimento_Origem, Desconto_Global_Por_Servico, 
+        Desconto_Global, Nome_Parceiro, Cod_Reserva, Nome_Servico, `Total ADT`, `Total CHD` 
+        FROM vw_sales
+        WHERE Status_Financeiro NOT IN ('TROCADO', 'A Faturar')'''
+
+        st.session_state.df_vendas = gerar_df_phoenix(st.session_state.base_luck, request_select)
+
+    def gerar_df_vendas_manuais():
+
+        puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Vendas Manuais', 'df_vendas_manuais')
+
+        tratar_colunas_numero_df(st.session_state.df_vendas_manuais, st.session_state.lista_colunas_numero_df_vendas_manuais)
+
+        tratar_colunas_data_df(st.session_state.df_vendas_manuais, st.session_state.lista_colunas_data_df_vendas_manuais)
+
+    def ajustar_nomes_leticia_soraya(df_vendas):
+
+        df_vendas['Vendedor'] = df_vendas['Vendedor'].replace('SORAYA - TRANSFERISTA', 'SORAYA - GUIA')
+
+        df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year>=2025), 'Vendedor'] = 'LETICIA - GUIA'
+
+        df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year<2025), 'Vendedor'] = 'LETICIA - PDV'
+
+        return df_vendas
+
+    def ajustar_pdvs_facebook(df_vendas):
+
+        mask_ref = (df_vendas['Vendedor'].isin(['RAQUEL - PDV', 'VALERIA - PDV', 'ROBERTA - PDV', 'LETICIA - PDV'])) & (pd.to_datetime(df_vendas['Data_Venda']).dt.year<2025) & \
+                (df_vendas['Canal_de_Vendas']=='Facebook')
+
+        df_vendas.loc[mask_ref, 'Vendedor'] = df_vendas.loc[mask_ref, 'Vendedor'].apply(lambda x: x.replace('- PDV', '- GUIA'))
+
+        return df_vendas
+
+    def ajustar_colunas_data_venda_mes_ano_total_paxs(df_vendas):
+
+        df_vendas['Data_Venda'] = pd.to_datetime(df_vendas['Data_Venda']).dt.date
+
+        df_vendas['Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.year
+
+        df_vendas['Mes'] = pd.to_datetime(df_vendas['Data_Venda']).dt.month
+
+        df_vendas['Mes_Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.to_period('M')
+
+        df_vendas['Total Paxs'] = df_vendas['Total ADT'].fillna(0) + df_vendas['Total CHD'].fillna(0) / 2
+
+        return df_vendas
+    
+    def criar_coluna_setor_definir_metas(df_vendas):
+
+        df_vendas['Setor'] = df_vendas['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 'BASE AEROPORTO': 'LOGISTICA', 
+                                                                                    'COORD. ESCALA': 'LOGISTICA', 'KUARA/MANSEAR': 'LOGISTICA', 'MOTORISTA': 'LOGISTICA', 
+                                                                                    'SUP. LOGISTICA': 'LOGISTICA'})
+        
+        dict_setor_meta = {'GUIA': 'Meta_Guia', 'PDV': 'Meta_PDV', 'HOTEL VENDAS': 'Meta_HV', 'GRUPOS': 'Meta_Grupos', 'VENDAS ONLINE': 'Meta_VendasOnline'}
+
+        df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
+
+        df_vendas['Meta'] = df_vendas.apply(lambda row: df_metas_indexed.at[row['Mes_Ano'], dict_setor_meta[row['Setor']]] 
+                                            if row['Setor'] in dict_setor_meta and row['Mes_Ano'] in df_metas_indexed.index else 0, axis=1)
+        
+        return df_vendas
+
+    # Puxando as vendas do Phoenix
+
+    gerar_df_vendas_phoenix()
+
+    # Puxando as vendas lançadas manualmente na planilha
+
+    gerar_df_vendas_manuais()
+
     df_vendas = pd.concat([st.session_state.df_vendas, st.session_state.df_vendas_manuais], ignore_index=True)
 
-    df_vendas['Data_Venda'] = pd.to_datetime(df_vendas['Data_Venda']).dt.date
-
-    df_vendas = df_vendas[~df_vendas['Status_Financeiro'].isin(['TROCADO', 'A Faturar'])]
+    # Ajustando nomes de letícia e soraya pra identificar o setor correto
 
     df_vendas = ajustar_nomes_leticia_soraya(df_vendas)
 
+    # Identificando como guia Raquel, Valeria, Roberta e Letícia quando o canal de vendas é Facebook e o ano é antes de 2025
+
     df_vendas = ajustar_pdvs_facebook(df_vendas)
 
-    df_vendas['Total Paxs'] = df_vendas['Total ADT'] + df_vendas['Total CHD'] / 2
+    # Ajustando formato de Data_Venda, criando coluna Mes_Ano e criando coluna Total Paxs
 
-    df_vendas['Total Paxs'] = df_vendas['Total Paxs'].fillna(0)
+    df_vendas = ajustar_colunas_data_venda_mes_ano_total_paxs(df_vendas)
 
-    df_vendas['Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.year
+    # Criando coluna setor, identificando pessoal da logistica e colocando a meta p/ cada setor
 
-    df_vendas['Mes'] = pd.to_datetime(df_vendas['Data_Venda']).dt.month
-
-    df_vendas['Mes_Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.to_period('M')
-
-    df_vendas['Setor'] = df_vendas['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 'BASE AEROPORTO': 'LOGISTICA', 'COORD. ESCALA': 'LOGISTICA', 
-                                                                                'KUARA/MANSEAR': 'LOGISTICA', 'MOTORISTA': 'LOGISTICA', 'SUP. LOGISTICA': 'LOGISTICA'})
-    
-    dict_setor_meta = {'GUIA': 'Meta_Guia', 'PDV': 'Meta_PDV', 'HOTEL VENDAS': 'Meta_HV', 'GRUPOS': 'Meta_Grupos', 'VENDAS ONLINE': 'Meta_VendasOnline'}
-
-    df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
-
-    df_vendas['Meta'] = df_vendas.apply(lambda row: df_metas_indexed.at[row['Mes_Ano'], dict_setor_meta[row['Setor']]] 
-                                        if row['Setor'] in dict_setor_meta and row['Mes_Ano'] in df_metas_indexed.index else 0, axis=1)
+    df_vendas = criar_coluna_setor_definir_metas(df_vendas)
 
     return df_vendas
 
 def gerar_df_ranking():
 
-    request_select = '''
-        SELECT 
-            `1 Vendedor`,
-            `Data de Execucao`,
-            `Tipo de Servico`,
-            `Servico`,
-            `Total ADT`,
-            `Total CHD`,
-            `Codigo da Reserva`
-        FROM vw_sales_ranking
-        WHERE `TIPO DE SERVICO` = 'TOUR';
-        '''
+    request_select = '''SELECT `1 Vendedor`, `Data de Execucao`, `Tipo de Servico`, `Servico`, `Total ADT`, `Total CHD`, `Codigo da Reserva` 
+    FROM vw_sales_ranking 
+    WHERE `Tipo de Servico` = 'TOUR';'''
     
     st.session_state.df_ranking = gerar_df_phoenix(st.session_state.base_luck, request_select)
 
@@ -194,30 +224,14 @@ def gerar_df_ranking():
 
 def gerar_df_paxs_in():
 
-    request_select = '''
-        SELECT 
-            `Tipo de Servico`,
-            `Data Execucao`,
-            `Servico`,
-            `Status do Servico`,
-            `Total ADT`,
-            `Total CHD`
-        FROM vw_router
-        WHERE
-            `Servico` != 'GUIA BASE NOTURNO' and
-            `Servico` != 'AEROPORTO JOÃO PESSOA / HOTÉIS PITIMBU' and
-            `Servico` != 'AEROPORTO JOÃO PESSOA / HOTÉIS CAMPINA GRANDE' and
-            `Servico` != 'FAZER CONTATO - SEM TRF IN ' and
-            `Servico` != 'AEROPORTO CAMPINA GRANDE / HOTEL CAMPINA GRANDE ' and
-            `Servico` != 'GUIA BASE DIURNO '; 
-        '''
+    request_select = '''SELECT `Tipo de Servico`, `Data Execucao`, `Servico`, `Status do Servico`, `Total ADT`, `Total CHD` 
+    FROM vw_router 
+    WHERE `Servico` NOT IN ('GUIA BASE NOTURNO', 'AEROPORTO JOÃO PESSOA / HOTÉIS PITIMBU', 'AEROPORTO JOÃO PESSOA / HOTÉIS CAMPINA GRANDE', 'FAZER CONTATO - SEM TRF IN', 
+    'AEROPORTO CAMPINA GRANDE / HOTEL CAMPINA GRANDE', 'GUIA BASE DIURNO') AND `Tipo de Servico` = 'IN' AND `Status do Servico` != 'CANCELADO';'''
     
     st.session_state.df_paxs_in = gerar_df_phoenix(st.session_state.base_luck, request_select)
 
     st.session_state.df_paxs_in['Data Execucao'] = pd.to_datetime(st.session_state.df_paxs_in['Data Execucao']).dt.date
-
-    st.session_state.df_paxs_in = st.session_state.df_paxs_in[(st.session_state.df_paxs_in['Tipo de Servico']=='IN') & (st.session_state.df_paxs_in['Status do Servico']!='CANCELADO')]\
-        .reset_index(drop=True)
     
     st.session_state.df_paxs_in['Ano'] = pd.to_datetime(st.session_state.df_paxs_in['Data Execucao']).dt.year
     
@@ -225,35 +239,9 @@ def gerar_df_paxs_in():
     
     st.session_state.df_paxs_in['Mes_Ano'] = pd.to_datetime(st.session_state.df_paxs_in['Data Execucao']).dt.to_period('M')
 
-    st.session_state.df_paxs_in['Total_Paxs_Periodo'] = st.session_state.df_paxs_in['Total ADT'] + (st.session_state.df_paxs_in['Total CHD'] / 2)
+    st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total ADT'] + (st.session_state.df_paxs_in['Total CHD'] / 2)
 
     st.session_state.df_paxs_in = pd.merge(st.session_state.df_paxs_in, st.session_state.df_metas[['Mes_Ano', 'Paxs_Desc']], on='Mes_Ano', how='left')
-
-    st.session_state.df_paxs_in['Paxs_Desc'] = pd.to_numeric(st.session_state.df_paxs_in['Paxs_Desc'], errors='coerce')
-
-def gerar_df_metas():
-
-    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Metas', 'df_metas')
-
-    tratar_colunas_numero_df(st.session_state.df_metas, st.session_state.lista_colunas_numero_df_metas)
-
-    tratar_colunas_data_df(st.session_state.df_metas, st.session_state.lista_colunas_data_df_metas)
-
-    st.session_state.df_metas['Mes_Ano'] = pd.to_datetime(st.session_state.df_metas['Data']).dt.to_period('M')
-
-def gerar_df_historico():
-
-    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Historico', 'df_historico')
-
-    tratar_colunas_numero_df(st.session_state.df_historico, st.session_state.lista_colunas_numero_df_historico)
-
-    tratar_colunas_data_df(st.session_state.df_historico, st.session_state.lista_colunas_data_df_historico)
-
-    st.session_state.df_historico['Ano'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.year
-    
-    st.session_state.df_historico['Mes'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.month
-    
-    st.session_state.df_historico['Mes_Ano'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.to_period('M')
 
 def filtrar_periodo_dfs():
 
@@ -274,35 +262,6 @@ def filtrar_periodo_dfs():
 
     return df_vendas, df_paxs_in, df_reembolsos, df_historico, df_ranking
 
-def adicionar_total_paxs_periodo_vendas(df_paxs_in, df_vendas):
-
-    soma_paxs = df_paxs_in['Total_Paxs_Periodo'].sum()
-
-    desc_paxs = df_paxs_in['Paxs_Desc'].mean()
-
-    df_vendas['Total_Paxs'] = float(soma_paxs) + float(desc_paxs)
-
-    return df_vendas
-
-def ajuste_colunas_float(df_vendas):
-
-    for coluna in ['Valor_Venda', 'Total_Paxs']:
-
-        df_vendas[coluna] = df_vendas[coluna].fillna(0).astype(float)
-
-    return df_vendas
-
-def ajustar_desconto_global(df_vendas):
-
-    df_vendas['Desconto_Global_Ajustado'] = np.where((df_vendas['Desconto_Global_Por_Servico'].notna()) & (df_vendas['Desconto_Global_Por_Servico'] < 1000) & 
-                                                     (df_vendas['Nome_Servico'] != 'EXTRA'), df_vendas['Desconto_Global_Por_Servico'], 0)
-    
-    return df_vendas
-
-def formatar_moeda(valor):
-
-    return format_currency(valor, 'BRL', locale='pt_BR')
-
 def adicionar_historico_de_vendas(df_historico, df_vendas):
 
     df_historico = df_historico.rename(columns={'Data': 'Data_Venda', 'Paxs ADT': 'Total_Paxs'})
@@ -311,65 +270,98 @@ def adicionar_historico_de_vendas(df_historico, df_vendas):
 
     return df_vendas, df_historico
 
-def gerar_df_vendas_group(df_vendas, df_reembolsos):
+def ajustar_desconto_global(df_vendas):
 
-    df_vendas_group = df_vendas.groupby(['Vendedor', 'Setor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum','Total_Paxs': 'mean','Desconto_Global_Ajustado': 'sum'})
+    df_vendas['Desconto_Global_Ajustado'] = np.where((df_vendas['Desconto_Global_Por_Servico'].notna()) & (df_vendas['Desconto_Global_Por_Servico'] < 1000) & 
+                                                     (df_vendas['Nome_Servico'] != 'EXTRA'), df_vendas['Desconto_Global_Por_Servico'], 0)
+    
+    return df_vendas
 
-    df_reembolsos = df_reembolsos.groupby('Vendedor', as_index=False)['Valor_Total'].sum()
+def gerar_df_vendas_agrupado(df_vendas, df_reembolsos, df_metas_setor, df_paxs_in):
 
-    df_merged = pd.merge(df_vendas_group, df_reembolsos, on='Vendedor', how='left')
+    def calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado):
 
-    df_vendas_group['Venda_Filtrada'] = df_merged['Valor_Venda'] - df_merged['Valor_Total'].fillna(0)
+        total_paxs_in = df_paxs_in['Total_Paxs'].sum()
 
-    df_vendas_group = df_vendas_group.sort_values(by='Venda_Filtrada', ascending=False)
+        total_paxs_desc = df_metas_setor['Paxs_Desc'].sum()
 
-    return df_vendas_group, df_reembolsos
+        df_vendas_agrupado['Total_Paxs'] = total_paxs_in + total_paxs_desc
 
-def gerar_df_vendas_grouop_setor(df_vendas_group):
+        return df_vendas_agrupado
+    
+    def adicionar_reembolsos(df_reembolsos, df_vendas_agrupado):
 
-    df_vendas_group_setor = df_vendas_group.groupby('Setor', as_index=False).agg({'Venda_Filtrada': 'sum','Total_Paxs': 'mean'})
+        df_reembolsos = df_reembolsos.groupby('Vendedor', as_index=False)['Valor_Total'].sum()
 
-    df_vendas_group_setor = df_vendas_group_setor.sort_values(by='Venda_Filtrada', ascending=False)
+        df_vendas_agrupado = pd.merge(df_vendas_agrupado, df_reembolsos, on='Vendedor', how='left')
 
-    df_vendas_group_setor = df_vendas_group_setor[df_vendas_group_setor['Setor'].isin(st.session_state.setores_desejados_gerencial)]
+        return df_vendas_agrupado
+    
+    def calculando_ordenando_venda_liquida_reembolsos(df_vendas_agrupado):
 
-    df_vendas_group_setor['Ticket_Medio'] = df_vendas_group_setor['Venda_Filtrada'] / df_vendas_group_setor['Total_Paxs']
+        df_vendas_agrupado['Venda_Filtrada'] = df_vendas_agrupado['Valor_Venda'] - df_vendas_agrupado['Valor_Total'].fillna(0)
 
-    return df_vendas_group_setor
+        df_vendas_agrupado = df_vendas_agrupado.sort_values(by='Venda_Filtrada', ascending=False)
 
-def gerar_grafico_valor_total_setor(df_vendas_group_setor):
+        return df_vendas_agrupado
+
+    df_vendas_agrupado = df_vendas.groupby(['Vendedor', 'Setor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum', 'Desconto_Global_Ajustado': 'sum'})
+
+    df_vendas_agrupado = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado)
+
+    df_vendas_agrupado = adicionar_reembolsos(df_reembolsos, df_vendas_agrupado)
+
+    df_vendas_agrupado = calculando_ordenando_venda_liquida_reembolsos(df_vendas_agrupado)
+
+    return df_vendas_agrupado, df_reembolsos
+
+def gerar_df_vendas_agrupado_setor(df_vendas_agrupado):
+
+    df_vendas_agrupado_setor = df_vendas_agrupado.groupby('Setor', as_index=False).agg({'Venda_Filtrada': 'sum','Total_Paxs': 'mean'})
+
+    df_vendas_agrupado_setor = df_vendas_agrupado_setor.sort_values(by='Venda_Filtrada', ascending=False)
+
+    df_vendas_agrupado_setor = df_vendas_agrupado_setor[df_vendas_agrupado_setor['Setor'].isin(st.session_state.setores_desejados_gerencial)]
+
+    df_vendas_agrupado_setor['Ticket_Medio'] = df_vendas_agrupado_setor['Venda_Filtrada'] / df_vendas_agrupado_setor['Total_Paxs']
+
+    return df_vendas_agrupado_setor
+
+def formatar_moeda(valor):
+
+    return format_currency(valor, 'BRL', locale='pt_BR')
+
+def gerar_grafico_valor_total_setor(df_vendas_agrupado_setor):
 
     fig = px.bar(
-            x=df_vendas_group_setor['Setor'], 
-            y=df_vendas_group_setor['Venda_Filtrada'],
-            color=df_vendas_group_setor['Setor'],  # Adiciona cores diferentes para cada setor
-            title='Valor Total por Setor',
-            labels={'Venda_Filtrada': 'Valor Total', 'Setor': 'Setores'},
-            text=df_vendas_group_setor['Venda_Filtrada'].apply(formatar_moeda),
-            color_discrete_sequence=['#047c6c']  
-    )
+        x=df_vendas_agrupado_setor['Setor'], 
+        y=df_vendas_agrupado_setor['Venda_Filtrada'],
+        color=df_vendas_agrupado_setor['Setor'],  
+        title='Valor Total por Setor',
+        labels={'Venda_Filtrada': 'Valor Total', 'Setor': 'Setores'},
+        text=df_vendas_agrupado_setor['Venda_Filtrada'].apply(formatar_moeda)
+        )
 
     ticket_medio_line = px.line(
-        x=df_vendas_group_setor['Setor'],
-        y=df_vendas_group_setor['Ticket_Medio'],
+        x=df_vendas_agrupado_setor['Setor'],
+        y=df_vendas_agrupado_setor['Ticket_Medio'],
         line_shape='spline'
-    )
+        )
+    
     fig.add_trace(ticket_medio_line.data[0])
     fig.data[-1].name = 'Ticket Medio'
     fig.data[-1].line.color = 'orange'
     fig.data[-1].line.width = 1  # Diminuindo a espessura do spline
     fig.data[-1].yaxis = 'y2'
     fig.data[-1].mode = 'lines+markers+text'
-    fig.data[-1].marker = dict(size=8, color='orange')
-    fig.data[-1].text = df_vendas_group_setor['Ticket_Medio'].apply(formatar_moeda)
-    fig.data[-1].textfont = dict(color='orange')  # Definindo a cor do texto dos marcadores
-
+    fig.data[-1].marker = dict(size=8)
+    fig.data[-1].text = df_vendas_agrupado_setor['Ticket_Medio'].apply(formatar_moeda)
 
     fig.data[-1].textposition = 'top center'
 
     fig.update_traces(
         textposition='outside',
-        textfont=dict(size=10, color='green'),
+        textfont=dict(size=10),
         selector=dict(type='bar')
     )
     fig.update_layout(
@@ -380,21 +372,31 @@ def gerar_grafico_valor_total_setor(df_vendas_group_setor):
 
     return fig
 
-def gerar_df_vendas_group_mes_setor(df_vendas, df_reembolsos):
+def gerar_df_vendas_agrupado_mes_setor(df_vendas, df_metas_setor, df_reembolsos):
 
-    df_vendas_group_mes = df_vendas.groupby(['Mes_Ano', 'Vendedor', 'Setor'], dropna=False).agg({'Valor_Venda': 'sum', 'Total_Paxs': 'mean', 'Desconto_Global_Ajustado': 'sum'}).reset_index()
+    def calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado_mes):
 
-    df_merged = pd.merge(df_vendas_group_mes, df_reembolsos, on='Vendedor', how='left')
+        total_paxs_in = df_paxs_in['Total_Paxs'].sum()
 
-    df_vendas_group_mes['Venda_Filtrada'] = df_merged['Valor_Venda'] - df_merged['Valor_Total'].fillna(0)
+        total_paxs_desc = df_metas_setor['Paxs_Desc'].sum()
 
-    df_vendas_group_mes['Mes_Ano'] = df_vendas_group_mes['Mes_Ano'].dt.to_timestamp()
+        df_vendas_agrupado_mes['Total_Paxs'] = total_paxs_in + total_paxs_desc
 
-    df_vendas_group_mes_setor = df_vendas_group_mes.groupby(['Mes_Ano', 'Setor'], as_index=False).agg({'Venda_Filtrada': 'sum'})
+        return df_vendas_agrupado_mes
 
-    df_vendas_group_mes_setor['Mes_Ano'] = df_vendas_group_mes_setor['Mes_Ano'].dt.strftime('%B %Y')
+    df_vendas_agrupado_mes = df_vendas.groupby(['Mes_Ano', 'Vendedor', 'Setor'], dropna=False).agg({'Valor_Venda': 'sum', 'Desconto_Global_Ajustado': 'sum'}).reset_index()
 
-    return df_vendas_group_mes_setor
+    df_vendas_agrupado_mes = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado_mes)
+
+    df_vendas_agrupado_mes = pd.merge(df_vendas_agrupado_mes, df_reembolsos, on='Vendedor', how='left')
+
+    df_vendas_agrupado_mes['Venda_Filtrada'] = df_vendas_agrupado_mes['Valor_Venda'].fillna(0) - df_vendas_agrupado_mes['Valor_Total'].fillna(0)
+
+    df_vendas_agrupado_mes_setor = df_vendas_agrupado_mes.groupby(['Mes_Ano', 'Setor'], as_index=False).agg({'Venda_Filtrada': 'sum'})
+
+    df_vendas_agrupado_mes_setor['Mes_Ano'] = df_vendas_agrupado_mes_setor['Mes_Ano'].dt.strftime('%B %Y')
+
+    return df_vendas_agrupado_mes_setor
 
 def plotar_graficos_pizza_vendas_setor_mes(df_vendas_group_mes_setor, colunas):
 
@@ -414,27 +416,33 @@ def plotar_graficos_pizza_vendas_setor_mes(df_vendas_group_mes_setor, colunas):
 
 def gerar_rankings_filtrados_geral(df_ranking, passeios_incluidos):
 
-    soma_catamara = df_ranking.loc[df_ranking['Servico'].isin(['CATAMARÃ DO FORRÓ', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ']), 'Total Paxs'].sum()
+    def gerar_ranking_filtrado_combo_setores(df_ranking):
 
-    soma_bynight = df_ranking.loc[df_ranking['Servico'].isin(['BY NIGHT PARAHYBA OXENTE ', 'INGRESSO - BY NIGHT ']), 'Total Paxs'].sum()
+        ranking_filtrado_combo = df_ranking.groupby(['Setor', 'Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
 
-    ranking_filtrado_combo = df_ranking.groupby(['Setor', 'Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
+        ranking_filtrado_combo_setores = ranking_filtrado_combo[ranking_filtrado_combo['Setor'].isin(st.session_state.setores_desejados_gerencial)]
 
-    ranking_filtrado_combo_setores = ranking_filtrado_combo[ranking_filtrado_combo['Setor'].isin(st.session_state.setores_desejados_gerencial)]
+        return ranking_filtrado_combo_setores
+    
+    def gerar_ranking_filtrado(df_ranking):
 
-    ranking_filtrado = df_ranking[df_ranking['Servico'].isin(passeios_incluidos)]
+        ranking_filtrado = df_ranking[df_ranking['Servico'].isin(passeios_incluidos)]
 
-    ranking_filtrado = ranking_filtrado.groupby(['Setor', 'Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
+        ranking_filtrado = ranking_filtrado.groupby(['Setor', 'Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
+
+        return ranking_filtrado
+
+    df_ranking['Servico'] = df_ranking['Servico'].replace({'EMBARCAÇAO - CATAMARÃ DO FORRÓ ': 'CATAMARÃ DO FORRÓ', 'INGRESSO - BY NIGHT ': 'BY NIGHT PARAHYBA OXENTE '}) 
+
+    ranking_filtrado_combo_setores = gerar_ranking_filtrado_combo_setores(df_ranking)
+
+    ranking_filtrado = gerar_ranking_filtrado(df_ranking)
 
     ranking_filtrado_setores = ranking_filtrado[ranking_filtrado['Setor'].isin(st.session_state.setores_desejados_gerencial)]
 
     ranking_filtrado_geral = ranking_filtrado.groupby(['Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
 
     mes_ranking_geral = ranking_filtrado_geral['Mes_Ano'].dt.strftime('%B %Y').unique()
-
-    ranking_filtrado_geral.loc[ranking_filtrado_geral['Servico'] == 'BY NIGHT PARAHYBA OXENTE ', 'Total Paxs'] = soma_bynight
-
-    ranking_filtrado_geral.loc[ranking_filtrado_geral['Servico'] == 'CATAMARÃ DO FORRÓ', 'Total Paxs'] = soma_catamara
 
     return ranking_filtrado_combo_setores, ranking_filtrado_setores, ranking_filtrado_geral, mes_ranking_geral
 
@@ -454,7 +462,7 @@ def plotar_graficos_pizza_desempenho_passeios_geral(mes_ranking_geral, ranking_f
                 values='Total Paxs',
                 title=f'Desempenho Passeios Geral - {mes_geral}',
                 labels={'Total Paxs': 'Total Paxs', 'Passeio': 'Servico'},
-                hole=0.3,  # Para criar um gráfico de donut
+                hole=0.3,
                 category_orders={'Servico': sorted(df_ranking_geral_chart['Servico'].unique())}
                 )
             
@@ -468,10 +476,6 @@ def plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores
 
     setor_ranking = ranking_filtrado_setores['Setor'].unique()
 
-    todos_servicos = ranking_filtrado_combo_setores['Servico'].unique()
-    
-    combo_outros = [combo for combo in todos_servicos if combo not in st.session_state.combo_luck]
-
     for mes_ in mes_ranking:
 
         for setor_ in setor_ranking:
@@ -480,10 +484,9 @@ def plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores
             
             df_ranking_combos = ranking_filtrado_combo_setores[(ranking_filtrado_combo_setores['Mes_Ano'].dt.strftime('%B %Y') == mes_) & (ranking_filtrado_combo_setores['Setor'] == setor_)]
 
-            df_ranking_combos['Combo'] = df_ranking_combos['Servico'].apply(lambda x: 'MIX LUCK' if x.upper() in st.session_state.combo_luck else 'MIX OUTROS' if x.upper() in combo_outros else 
-                                                                            'OUTROS')
+            df_ranking_combos['Combo'] = df_ranking_combos['Servico'].apply(lambda x: 'MIX LUCK' if x.upper() in st.session_state.combo_luck else 'MIX OUTROS')
 
-            df_combos_contador = df_ranking_combos.groupby('Combo')['Total Paxs'].sum().reset_index()
+            df_combos_contador = df_ranking_combos.groupby('Combo', as_index=False)['Total Paxs'].sum()
             
             if not df_ranking_chart.empty:
 
@@ -586,16 +589,16 @@ if not 'base_luck' in st.session_state:
         st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
                                        'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
                                        'PISCINAS DO EXTREMO ORIENTAL', 'PRAIAS DA COSTA DO CONDE']
+        
+        st.session_state.passeios_incluidos = st.session_state.df_config[st.session_state.df_config['Configuração']=='Passeios Gráfico Pizza']['Parâmetro'].tolist()
 
 st.title('Gerencial - Mês a Mês')
 
 st.divider()
 
-if not 'df_vendas' in st.session_state:
+if any(key not in st.session_state for key in ['df_reembolsos', 'df_metas', 'df_config', 'df_historico', 'df_vendas_final', 'anos_disponiveis', 'df_ranking', 'df_paxs_in']):
 
-    with st.spinner('Puxando vendas manuais, reembolsos, metas de vendedores, metas de setores, configurações, histórico...'):
-
-        gerar_df_vendas_manuais()
+    with st.spinner('Puxando reembolsos, metas de vendedores, metas de setores, configurações, histórico...'):
 
         gerar_df_reembolsos()
 
@@ -606,8 +609,6 @@ if not 'df_vendas' in st.session_state:
         gerar_df_historico()
 
     with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
-
-        gerar_df_vendas()
 
         st.session_state.df_vendas_final = gerar_df_vendas_final()
 
@@ -623,11 +624,11 @@ col1, col2 = st.columns([2, 4])
 
 with col1:
 
-    ano_selecao = st.multiselect('Selecione o Ano:', st.session_state.anos_disponiveis, default=[], key='ano_selecao')
+    ano_selecao = st.multiselect('Selecione o Ano:', st.session_state.anos_disponiveis, default=[date.today().year], key='ano_selecao')
 
 with col2:
 
-    mes_selecao = st.multiselect('Selecione o Mês:', st.session_state.meses_disponiveis.keys(), default=st.session_state.meses_disponiveis.keys(), key='mes_selecao')
+    mes_selecao = st.multiselect('Selecione o Mês:', st.session_state.meses_disponiveis.keys(), default=list(st.session_state.meses_disponiveis.keys())[:date.today().month], key='mes_selecao')
 
     st.session_state.mes_selecao_valores = [st.session_state.meses_disponiveis[mes] for mes in mes_selecao]
 
@@ -635,35 +636,29 @@ if len(ano_selecao)>0 and len(mes_selecao)>0:
 
     df_vendas, df_paxs_in, df_reembolsos, df_historico, df_ranking = filtrar_periodo_dfs()
 
-    df_vendas = adicionar_total_paxs_periodo_vendas(df_paxs_in, df_vendas)
-
-    df_vendas = ajuste_colunas_float(df_vendas)
-
     df_vendas, df_historico = adicionar_historico_de_vendas(df_historico, df_vendas)
 
     df_vendas = ajustar_desconto_global(df_vendas)
 
-    df_vendas_group, df_reembolsos = gerar_df_vendas_group(df_vendas, df_reembolsos)
+    df_vendas_agrupado, df_reembolsos = gerar_df_vendas_agrupado(df_vendas, df_reembolsos, st.session_state.df_metas, df_paxs_in)
 
-    df_vendas_group_setor = gerar_df_vendas_grouop_setor(df_vendas_group)
+    df_vendas_agrupado_setor = gerar_df_vendas_agrupado_setor(df_vendas_agrupado)
 
-    fig = gerar_grafico_valor_total_setor(df_vendas_group_setor)
+    fig = gerar_grafico_valor_total_setor(df_vendas_agrupado_setor)
 
     st.plotly_chart(fig)
 
-    df_vendas_group_mes_setor = gerar_df_vendas_group_mes_setor(df_vendas, df_reembolsos)
+    df_vendas_agrupado_mes_setor = gerar_df_vendas_agrupado_mes_setor(df_vendas, st.session_state.df_metas, df_reembolsos)
 
     st.title('Fatias de Vendas por Setor')
 
     colunas = st.columns(2)
 
-    plotar_graficos_pizza_vendas_setor_mes(df_vendas_group_mes_setor, colunas)
+    plotar_graficos_pizza_vendas_setor_mes(df_vendas_agrupado_mes_setor, colunas)
 
     st.title('Desempenho Passeios Geral')
 
-    passeios_incluidos = st.session_state.df_config[st.session_state.df_config['Configuração']=='Passeios Gráfico Pizza']['Parâmetro'].tolist()
-
-    ranking_filtrado_combo_setores, ranking_filtrado_setores, ranking_filtrado_geral, mes_ranking_geral = gerar_rankings_filtrados_geral(df_ranking, passeios_incluidos)
+    ranking_filtrado_combo_setores, ranking_filtrado_setores, ranking_filtrado_geral, mes_ranking_geral = gerar_rankings_filtrados_geral(df_ranking, st.session_state.passeios_incluidos)
 
     colunas = st.columns(2)
 
@@ -675,4 +670,4 @@ if len(ano_selecao)>0 and len(mes_selecao)>0:
 
 else:
 
-    st.warning('Seleciona pelo menos um ano e um mês para a análise')
+    st.warning('Selecione pelo menos um ano e um mês para a análise')
