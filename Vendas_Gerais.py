@@ -62,6 +62,8 @@ def gerar_df_metas_vendedor():
 
     tratar_colunas_data_df(st.session_state.df_metas_vendedor, st.session_state.lista_colunas_data_df_metas_vendedor)
 
+    st.session_state.df_metas_vendedor['Mes_Ano'] = pd.to_datetime(st.session_state.df_metas_vendedor['Data']).dt.to_period('M')
+
 def gerar_df_metas():
 
     puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Metas', 'df_metas')
@@ -231,6 +233,8 @@ def gerar_df_guias_in():
 
     st.session_state.df_guias_in['Guia'] = st.session_state.df_guias_in['Guia'].replace(substituicao)
 
+    st.session_state.df_guias_in['Mes_Ano'] = pd.to_datetime(st.session_state.df_guias_in['Data da Escala']).dt.to_period('M')
+
 def gerar_df_paxs_in():
 
     request_select = '''SELECT `Tipo de Servico`, `Data Execucao`, `Servico`, `Status do Servico`, `Total ADT`, `Total CHD` 
@@ -248,7 +252,7 @@ def gerar_df_paxs_in():
     
     st.session_state.df_paxs_in['Mes_Ano'] = pd.to_datetime(st.session_state.df_paxs_in['Data Execucao']).dt.to_period('M')
 
-    st.session_state.df_paxs_in['Total_Paxs_Periodo'] = st.session_state.df_paxs_in['Total ADT'] + (st.session_state.df_paxs_in['Total CHD'] / 2)
+    st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total ADT'] + (st.session_state.df_paxs_in['Total CHD'] / 2)
 
     st.session_state.df_paxs_in = pd.merge(st.session_state.df_paxs_in, st.session_state.df_metas[['Mes_Ano', 'Paxs_Desc']], on='Mes_Ano', how='left')
 
