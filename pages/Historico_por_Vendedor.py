@@ -9,6 +9,7 @@ from babel.numbers import format_currency
 import plotly.express as px
 import plotly.graph_objects as go
 import locale
+from datetime import date
 
 def puxar_aba_simples(id_gsheet, nome_aba, nome_df):
 
@@ -477,9 +478,17 @@ def gerar_grafico_acumulado_meta(vendedor, df):
 
 st.set_page_config(layout='wide')
 
-st.title('Historico por Vendedor')
+row_titulo = st.columns(1)
 
-st.divider()
+tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor'], index=None)
+
+if tipo_analise:
+
+    with row_titulo[0]:
+
+        st.title(tipo_analise)
+
+        st.divider()
 
 if any(key not in st.session_state for key in ['df_reembolsos', 'df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_guias_in', 'df_paxs_in']):
 
@@ -519,35 +528,73 @@ if not 'df_geral_vendedor' in st.session_state:
 
     st.session_state.df_geral_vendedor = adicionar_performance_anual_acumulado_anual_meta_anual(df_geral_vendedor)
 
-lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
+if tipo_analise=='Historico por Vendedor':
 
-col1, col2 = st.columns([4, 8])
+    lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
 
-with col1:
+    col1, col2 = st.columns([4, 8])
 
-    ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=[], key='vend_0001')
+    with col1:
 
-with col2:
+        ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=[], key='vend_0001')
 
-    setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='vend_0002')
+    with col2:
 
-if len(ano_selecao)>0 and len(setor_selecao)>0:
+        setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='vend_0002')
 
-    df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Setor'].isin(setor_selecao))]
+    if len(ano_selecao)>0 and len(setor_selecao)>0:
 
-    df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].astype(str)
+        df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Setor'].isin(setor_selecao))]
 
-    vendedores = df_filtrado['Vendedor'].unique()
+        df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].dt.strftime('%m/%y')
 
-    for vendedor in vendedores:
+        vendedores = df_filtrado['Vendedor'].unique()
 
-        with col1:
+        for vendedor in vendedores:
 
-            fig_anual = gerar_grafico_acumulado_meta(vendedor, df_filtrado)
+            with col1:
 
-            st.plotly_chart(fig_anual)
+                fig_anual = gerar_grafico_acumulado_meta(vendedor, df_filtrado)
 
-        with col2:
+                st.plotly_chart(fig_anual)
+
+            with col2:
+
+                fig_mensal = gerar_grafico_vendedor(vendedor, df_filtrado)
+
+                st.plotly_chart(fig_mensal)
+
+elif tipo_analise=='Acompanhamento Anual - Vendedores':
+
+    lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
+
+    ano_atual = date.today().year
+
+    df_filtro_lista = st.session_state.df_geral_vendedor.groupby(['Vendedor'], as_index=False)['Venda_Filtrada'].sum()
+
+    lista_vendedor = df_filtro_lista['Vendedor'].unique().tolist()
+
+    top_vendedores = df_filtro_lista.nlargest(5, 'Venda_Filtrada')['Vendedor'].tolist()
+
+    col1, col2 = st.columns([4, 8])
+
+    with col1:
+
+        ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=ano_atual, key='perf_0001')
+
+    with col2:
+
+        vendedor_selecao = st.multiselect('Selecione o Vendedor:', options=lista_vendedor, default=top_vendedores, key='perf_0002')
+
+    if len(ano_selecao)>0 and len(vendedor_selecao)>0:
+
+        df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Vendedor'].isin(vendedor_selecao))]
+
+        df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].dt.strftime('%m/%y')
+
+        vendedores = df_filtrado['Vendedor'].unique()
+
+        for vendedor in vendedores:
 
             fig_mensal = gerar_grafico_vendedor(vendedor, df_filtrado)
 
