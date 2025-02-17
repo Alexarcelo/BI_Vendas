@@ -79,19 +79,6 @@ def gerar_df_historico():
     st.session_state.df_historico['Mes'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.month
     
     st.session_state.df_historico['Mes_Ano'] = pd.to_datetime(st.session_state.df_historico['Data']).dt.to_period('M')
-
-def gerar_df_metas():
-
-    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Metas', 'df_metas')
-
-    tratar_colunas_numero_df(st.session_state.df_metas, st.session_state.lista_colunas_numero_df_metas)
-
-    tratar_colunas_data_df(st.session_state.df_metas, st.session_state.lista_colunas_data_df_metas)
-
-    st.session_state.df_metas['Mes_Ano'] = pd.to_datetime(st.session_state.df_metas['Data']).dt.to_period('M')
-
-    st.session_state.df_metas['Meta_Total'] = st.session_state.df_metas['Meta_Guia'] + st.session_state.df_metas['Meta_PDV'] + st.session_state.df_metas['Meta_HV'] + \
-        st.session_state.df_metas['Meta_Grupos'] + st.session_state.df_metas['Meta_VendasOnline']
     
 def gerar_df_phoenix(base_luck, request_select):
     
