@@ -215,6 +215,28 @@ def gerar_df_vendas_final():
 
     return df_vendas
 
+def gerar_df_ranking():
+
+    request_select = '''SELECT `1 Vendedor`, `Data de Execucao`, `Tipo de Servico`, `Servico`, `Total ADT`, `Total CHD`, `Codigo da Reserva` 
+    FROM vw_sales_ranking 
+    WHERE `Tipo de Servico` = 'TOUR';'''
+    
+    st.session_state.df_ranking = gerar_df_phoenix(st.session_state.base_luck, request_select)
+
+    st.session_state.df_ranking['Data de Execucao'] = pd.to_datetime(st.session_state.df_ranking['Data de Execucao']).dt.date
+
+    st.session_state.df_ranking['Ano'] = pd.to_datetime(st.session_state.df_ranking['Data de Execucao']).dt.year
+    
+    st.session_state.df_ranking['Mes'] = pd.to_datetime(st.session_state.df_ranking['Data de Execucao']).dt.month
+    
+    st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data de Execucao']).dt.to_period('M')
+
+    st.session_state.df_ranking['Setor'] = st.session_state.df_ranking['1 Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 
+                                                                                                                      'BASE AEROPORTO': 'LOGISTICA', 'COORD. ESCALA': 'LOGISTICA', 
+                                                                                                                      'KUARA/MANSEAR': 'LOGISTICA'})
+    
+    st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total ADT'] + st.session_state.df_ranking['Total CHD'] / 2
+
 def gerar_df_guias_in():
 
     request_select = '''SELECT `Data da Escala`, `Guia`, `Tipo de Servico`, `Total ADT`, `Total CHD` 
@@ -432,7 +454,7 @@ def gerar_grafico_vendedor(vendedor, df):
     
     return fig
 
-def gerar_grafico_acumulado_meta(vendedor, df):
+def gerar_grafico_acumulado_meta_1(vendedor, df):
     df_vendedor = df[df['Vendedor'] == vendedor]
     df_anual = df_vendedor.groupby('Ano').agg({
         'Acumulado_Anual': 'mean',
@@ -476,11 +498,240 @@ def gerar_grafico_acumulado_meta(vendedor, df):
     )
     return fig
 
+def gerar_grafico_acumulado_meta_2(vendedor, df):
+
+    df_vendedor = df[df['Vendedor'] == vendedor]
+
+    df_anual = df_vendedor.groupby('Mes_Nome').agg({'Venda_Filtrada': 'mean', 'Venda_Esperada': 'mean', 'Performance_Mes': 'mean'}).reset_index()
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=df_anual['Mes_Nome'],
+        y=df_anual['Venda_Filtrada'],
+        name='Venda Mes',
+        marker=dict(color='rgb(4,124,108)'),
+        text=df_anual['Venda_Filtrada'].apply(formatar_moeda),
+        textposition='outside',
+        textfont=dict(size=10),
+        width=0.3,             # Define a largura das barras
+    ))
+    fig.add_trace(go.Bar(
+        x=df_anual['Mes_Nome'],
+        y=df_anual['Venda_Esperada'],
+        name='Meta Mes',
+        marker=dict(color='steelblue'),
+        text=df_anual['Venda_Esperada'].apply(formatar_moeda),
+        textposition='outside',
+        textfont=dict(size=10, color='steelblue'),
+        width=0.3,             # Define a largura das barras
+    ))
+    fig.update_layout(
+        title=f"Vendas - {vendedor} | Performance - {df_anual['Performance_Mes'].loc[0] * 100:.2f}%",
+        xaxis_title="Mes",
+        yaxis_title="Valores",
+        barmode='group',
+        legend=dict(
+            font=dict(size=8),
+            orientation="h",             # Legenda em orientação horizontal
+            yanchor="top",            # Âncora na parte inferior da legenda
+            y=1.15,                       # Posição vertical acima da área de plotagem
+            xanchor="left",            # Âncora no centro horizontal da legenda
+            x=-0.2      
+        )
+    )
+    return fig
+
+def formatar_condicional(row):
+        
+        if row['Falta p/ Meta'] < 0:
+
+            return ['background-color: lightgreen'] * len(row)
+        
+        else:
+            
+            return [''] * len(row)
+
+def colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise):
+
+    if tipo_analise=='Historico por Vendedor':
+
+        lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
+
+        with col1:
+
+            ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=[], key='vend_0001')
+
+        with col2:
+
+            setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='vend_0002')
+
+        return ano_selecao, setor_selecao
+    
+    elif tipo_analise=='Acompanhamento Anual - Vendedores':
+
+        lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
+
+        ano_atual = date.today().year
+
+        df_filtro_lista = st.session_state.df_geral_vendedor.groupby(['Vendedor'], as_index=False)['Venda_Filtrada'].sum()
+
+        lista_vendedor = df_filtro_lista['Vendedor'].unique().tolist()
+
+        top_vendedores = df_filtro_lista.nlargest(5, 'Venda_Filtrada')['Vendedor'].tolist()
+
+        with col1:
+
+            ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=ano_atual, key='perf_0001')
+
+        with col2:
+
+            vendedor_selecao = st.multiselect('Selecione o Vendedor:', options=lista_vendedor, default=top_vendedores, key='perf_0002')
+
+        return ano_selecao, vendedor_selecao
+
+def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
+
+    if tipo_analise=='Historico por Vendedor':
+
+        df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Setor'].isin(setor_selecao))]
+
+        df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].dt.strftime('%m/%y')
+
+        vendedores = df_filtrado['Vendedor'].unique()
+
+        for vendedor in vendedores:
+
+            with col1:
+
+                fig_anual = gerar_grafico_acumulado_meta_1(vendedor, df_filtrado)
+
+                st.plotly_chart(fig_anual)
+
+            with col2:
+
+                fig_mensal = gerar_grafico_vendedor(vendedor, df_filtrado)
+
+                st.plotly_chart(fig_mensal)
+
+    elif tipo_analise=='Acompanhamento Anual - Vendedores':
+
+        df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Vendedor'].isin(vendedor_selecao))]
+
+        df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].dt.strftime('%m/%y')
+
+        vendedores = df_filtrado['Vendedor'].unique()
+
+        for vendedor in vendedores:
+
+            fig_mensal = gerar_grafico_vendedor(vendedor, df_filtrado)
+
+            st.plotly_chart(fig_mensal)
+
+def criar_df_ranking_df_vendas_graficos():
+
+    df_ranking = st.session_state.df_ranking.copy()
+
+    df_vendas = st.session_state.df_geral_vendedor.copy()
+
+    df_vendas['Mes_Nome'] = df_vendas['Mes_Ano'].dt.strftime('%B')
+
+    df_ranking['Mes_Nome'] = df_ranking['Mes_Ano'].dt.strftime('%B')
+
+    return df_vendas, df_ranking
+
+def colher_ano_mes_setor_selecao(df_vendas):
+
+    lista_anos = df_vendas['Ano'].unique().tolist()
+
+    lista_mes = [valor for valor in st.session_state.meses_disponiveis.keys() if valor in df_vendas['Mes_Nome'].unique()]
+
+    with col1:
+
+        ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=[], key='met_001')
+
+    with col2:
+
+        mes_selecao = st.multiselect('Selecione o Mês', options=lista_mes, default=[], key='met_002')
+
+    with col3:
+
+        setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='met_003')
+
+    return ano_selecao, mes_selecao, setor_selecao
+
+def plotar_graficos_e_tabelas_meta_mes():
+
+    def filtrar_df_ranking_vendas(df_vendas, ano_selecao, setor_selecao, mes_selecao):
+
+        df_vendas_filtrado = df_vendas[(df_vendas['Ano'].isin(ano_selecao)) & (df_vendas['Setor'].isin(setor_selecao)) & (df_vendas['Mes_Nome'].isin(mes_selecao))]
+
+        df_vendas_filtrado['Mes_Ano'] = df_vendas_filtrado['Mes_Ano'].dt.strftime('%m/%y')
+
+        df_vendas_filtrado['Falta p/ Meta'] = df_vendas_filtrado['Venda_Esperada'] - df_vendas_filtrado['Venda_Filtrada'] 
+
+        df_ranking_filtrado = df_ranking[(df_ranking['Ano'].isin(ano_selecao)) & (df_ranking['Setor'].isin(setor_selecao)) & (df_ranking['Mes_Nome'].isin(mes_selecao))]
+
+        ranking_filtrado_combo = df_ranking_filtrado.groupby(['1 Vendedor', 'Servico', 'Mes_Nome', 'Ano'], as_index=False)['Total Paxs'].sum()
+
+        return df_vendas_filtrado, ranking_filtrado_combo
+    
+    def gerar_df_filtrado_print(df_vendas_filtrado):
+
+        df_filtrado_print = df_vendas_filtrado.copy()
+
+        df_filtrado_print = df_filtrado_print[df_filtrado_print['Vendedor'] == vendedor]
+
+        df_filtrado_print = df_filtrado_print.rename(columns={'Venda_Filtrada': 'Venda Filtrada', 'Venda_Esperada': 'Venda Esperada'})
+
+        df_filtrado_print = df_filtrado_print[['Vendedor', 'Venda Filtrada', 'Venda Esperada', 'Falta p/ Meta']]
+
+        df_filtrado_print = df_filtrado_print.style.apply(formatar_condicional, axis=1)
+
+        df_filtrado_print = df_filtrado_print.format({'Venda Filtrada': formatar_moeda, 'Venda Esperada': formatar_moeda, 'Falta p/ Meta': formatar_moeda})
+
+        return df_filtrado_print
+    
+    def gerar_df_ranking_print(ranking_filtrado_combo):
+    
+        df_ranking_print = ranking_filtrado_combo[ranking_filtrado_combo['1 Vendedor'] == vendedor]
+
+        df_ranking_print = df_ranking_print[['1 Vendedor', 'Servico', 'Total Paxs']]
+
+        df_ranking_print['Total Paxs'] = pd.to_numeric(df_ranking_print['Total Paxs'])
+
+        df_ranking_print = df_ranking_print.sort_values(by='Total Paxs', ascending=False)
+
+        return df_ranking_print
+
+    df_vendas_filtrado, ranking_filtrado_combo = filtrar_df_ranking_vendas(df_vendas, ano_selecao, setor_selecao, mes_selecao)
+
+    vendedores = df_vendas_filtrado['Vendedor'].unique()
+
+    for vendedor in vendedores:
+
+        col01, col02 = st.columns([4, 8])
+
+        with col01:
+
+            fig_anual = gerar_grafico_acumulado_meta_2(vendedor, df_vendas_filtrado)
+
+            st.plotly_chart(fig_anual, use_container_width=True)
+
+        with col02:
+
+            df_filtrado_print = gerar_df_filtrado_print(df_vendas_filtrado)
+
+            st.dataframe(df_filtrado_print, use_container_width=True, hide_index=True)
+
+            df_ranking_print = gerar_df_ranking_print(ranking_filtrado_combo)
+
+            st.dataframe(df_ranking_print, use_container_width=True, hide_index=True, height=355)
+
 st.set_page_config(layout='wide')
 
 row_titulo = st.columns(1)
 
-tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor'], index=None)
+tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor', 'Meta Mês'], index=None)
 
 if tipo_analise:
 
@@ -490,7 +741,11 @@ if tipo_analise:
 
         st.divider()
 
-if any(key not in st.session_state for key in ['df_reembolsos', 'df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_guias_in', 'df_paxs_in']):
+else:
+
+    st.warning('Escolha um tipo de análise')
+
+if any(key not in st.session_state for key in ['df_reembolsos', 'df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in']):
 
     with st.spinner('Puxando reembolsos, configurações, histórico...'):
 
@@ -507,6 +762,8 @@ if any(key not in st.session_state for key in ['df_reembolsos', 'df_config', 'df
     with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
 
         st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+        gerar_df_ranking()
 
         gerar_df_guias_in()
 
@@ -530,72 +787,44 @@ if not 'df_geral_vendedor' in st.session_state:
 
 if tipo_analise=='Historico por Vendedor':
 
-    lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
-
     col1, col2 = st.columns([4, 8])
-
-    with col1:
-
-        ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=[], key='vend_0001')
-
-    with col2:
-
-        setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='vend_0002')
+    
+    ano_selecao, setor_selecao = colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise)
 
     if len(ano_selecao)>0 and len(setor_selecao)>0:
 
-        df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Setor'].isin(setor_selecao))]
+        plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise)
 
-        df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].dt.strftime('%m/%y')
+    else:
 
-        vendedores = df_filtrado['Vendedor'].unique()
-
-        for vendedor in vendedores:
-
-            with col1:
-
-                fig_anual = gerar_grafico_acumulado_meta(vendedor, df_filtrado)
-
-                st.plotly_chart(fig_anual)
-
-            with col2:
-
-                fig_mensal = gerar_grafico_vendedor(vendedor, df_filtrado)
-
-                st.plotly_chart(fig_mensal)
+        st.warning('Precisa selecionar pelo menos um Ano e Setor')
 
 elif tipo_analise=='Acompanhamento Anual - Vendedores':
 
-    lista_anos = st.session_state.df_geral_vendedor['Ano'].unique().tolist()
-
-    ano_atual = date.today().year
-
-    df_filtro_lista = st.session_state.df_geral_vendedor.groupby(['Vendedor'], as_index=False)['Venda_Filtrada'].sum()
-
-    lista_vendedor = df_filtro_lista['Vendedor'].unique().tolist()
-
-    top_vendedores = df_filtro_lista.nlargest(5, 'Venda_Filtrada')['Vendedor'].tolist()
-
     col1, col2 = st.columns([4, 8])
 
-    with col1:
-
-        ano_selecao = st.multiselect('Selecione o Ano:', options=lista_anos, default=ano_atual, key='perf_0001')
-
-    with col2:
-
-        vendedor_selecao = st.multiselect('Selecione o Vendedor:', options=lista_vendedor, default=top_vendedores, key='perf_0002')
+    ano_selecao, vendedor_selecao = colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise)
 
     if len(ano_selecao)>0 and len(vendedor_selecao)>0:
 
-        df_filtrado = st.session_state.df_geral_vendedor[(st.session_state.df_geral_vendedor['Ano'].isin(ano_selecao)) & (st.session_state.df_geral_vendedor['Vendedor'].isin(vendedor_selecao))]
+        plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise)
 
-        df_filtrado['Mes_Ano'] = df_filtrado['Mes_Ano'].dt.strftime('%m/%y')
+    else:
 
-        vendedores = df_filtrado['Vendedor'].unique()
+        st.warning('Precisa selecionar pelo menos um Ano e Vendedor')
 
-        for vendedor in vendedores:
+elif tipo_analise=='Meta Mês':
 
-            fig_mensal = gerar_grafico_vendedor(vendedor, df_filtrado)
+    col1, col2, col3 = st.columns([4, 4, 4])
+    
+    df_vendas, df_ranking = criar_df_ranking_df_vendas_graficos()
 
-            st.plotly_chart(fig_mensal)
+    ano_selecao, mes_selecao, setor_selecao = colher_ano_mes_setor_selecao(df_vendas)
+
+    if len(ano_selecao)>0 and len(mes_selecao)>0 and len(setor_selecao)>0:
+
+        plotar_graficos_e_tabelas_meta_mes()
+
+    else:
+
+        st.warning('Precisa selecionar pelo menos um Ano, Mês e Setor')
