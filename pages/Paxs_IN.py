@@ -364,47 +364,6 @@ def gerar_grafico_paxs_in(df_todos_in):
 
 st.set_page_config(layout='wide')
 
-st.session_state.base_luck = 'test_phoenix_joao_pessoa'
-
-st.session_state.id_gsheet_metas_vendas = '1rkHSZ8fGqcITG9GMPzWCdIsCW11aC51-HfxggTeeLZQ'
-
-st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total ADT', 'Total CHD']
-
-st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
-
-st.session_state.lista_colunas_numero_df_metas_vendedor = ['Meta_Mes']
-
-st.session_state.lista_colunas_data_df_metas_vendedor = ['Data']
-
-st.session_state.lista_colunas_numero_df_metas = ['Meta_Guia', 'Meta_PDV', 'Meta_HV', 'Meta_Grupos', 'Meta_VendasOnline', 'Paxs_Desc']
-
-st.session_state.lista_colunas_data_df_metas = ['Data']
-
-st.session_state.lista_colunas_numero_df_historico = ['Valor_Venda', 'Paxs ADT', 'Paxs CHD']
-
-st.session_state.lista_colunas_data_df_historico = ['Data']
-
-st.session_state.lista_colunas_numero_df_historico_vendedor = ['Valor', 'Meta', 'Paxs_Total']
-
-st.session_state.lista_colunas_data_df_historico_vendedor = ['Data']
-
-st.session_state.id_gsheet_reembolsos = '1dmcVUq7Bl_ipxPyxY8IcgxT7dCmTh_FLxYJqGigoSb0'
-
-st.session_state.lista_colunas_numero_df_reembolsos = ['Valor_Total']
-
-st.session_state.lista_colunas_data_df_reembolsos = ['Data_venc']
-
-st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
-                                        'Dezembro': 12}
-
-st.session_state.setores_desejados_gerencial = ['EVENTOS', 'GRUPOS', 'GUIA', 'HOTEL VENDAS', 'PDV', 'VENDAS ONLINE']
-
-st.session_state.setores_desejados_historico_por_vendedor = ['PDV', 'GUIA', 'HOTEL VENDAS', 'VENDAS ONLINE']
-
-st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
-                                'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
-                                'PISCINAS DO EXTREMO ORIENTAL', 'PRAIAS DA COSTA DO CONDE']
-
 st.title('Paxs IN')
 
 st.divider()
