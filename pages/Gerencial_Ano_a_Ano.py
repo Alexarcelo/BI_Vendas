@@ -358,6 +358,10 @@ def plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal):
         df_mes = df_vendas_mensal[df_vendas_mensal['Mes'] == mes]
 
         mes_nome = next((chave for chave, valor in st.session_state.meses_disponiveis.items() if valor == mes), None)
+
+        df_mes['Ano'] = df_mes['Ano'].astype(str)
+
+        df_mes['Mes'] = df_mes['Mes'].astype(str)
         
         fig = px.bar(
             df_mes, 
@@ -386,10 +390,18 @@ def plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal):
 
 def plotar_grafico_barra_valor_total_por_setor_ano_resumo(df_vendas_anual):
 
+    df_vendas_anual['nomes_barras'] = df_vendas_anual.apply(lambda row: f"{formatar_moeda(row['Valor_Total'])}<br>Variação: {round(row['Variacao_Anual'], 2)}%" 
+                                   if pd.notna(row['Variacao_Anual'])
+                                   else f"{formatar_moeda(row['Valor_Total'])}", axis=1)
+
+    df_vendas_anual['Ano'] = df_vendas_anual['Ano'].astype(str)
+
+    df_vendas_anual = df_vendas_anual.reset_index(drop=True)
+
     fig_ano = px.bar(df_vendas_anual, x='Setor', y='Valor_Total', color='Ano',
                 title=f'Valor Total por Setor Ano a Ano',
                 labels={'Valor_Total': 'Valor Total', 'Setor': 'Setor'},
-                text=df_vendas_anual['Valor_Total'].apply(formatar_moeda),
+                text=df_vendas_anual['nomes_barras'],
                 color_discrete_sequence=['#047c6c', '#3CB371', '#90EE90'],
                 barmode='group',
                 category_orders={"Ano": sorted(df_vendas_anual['Ano'].unique())}
@@ -397,20 +409,6 @@ def plotar_grafico_barra_valor_total_por_setor_ano_resumo(df_vendas_anual):
     fig_ano.update_traces(
         textposition='outside',
         textfont=dict(size=10)
-    )
-    fig_ano.add_trace(
-        go.Scatter(
-            x=df_vendas_anual['Setor'], 
-            y=df_vendas_anual['Variacao_Anual'], 
-            mode='lines+markers+text', 
-            line=dict(color='orange', width=1),
-            name='Variação %', 
-            line_shape='spline',  # Suaviza a linha
-            text=[f"{round(val, 2)}%" for val in df_vendas_anual['Variacao_Anual']],
-            textfont=dict(size=12, color='orange'),
-            yaxis='y2',
-            textposition='top center',
-    )
     )
     fig_ano.update_layout(
         bargap=0.2,
@@ -600,7 +598,7 @@ df_vendas_mensal = df_filtrado.groupby(['Mes', 'Ano', 'Setor'], as_index=False)[
 
 plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal)
 
-df_vendas_anual = df_vendas.groupby(['Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
+df_vendas_anual = df_filtrado.groupby(['Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
 
 df_vendas_anual = df_vendas_anual.sort_values(by=['Setor', 'Ano'])
 
