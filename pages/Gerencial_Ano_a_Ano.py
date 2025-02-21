@@ -268,6 +268,10 @@ def gerar_df_agrupado(df_vendas):
 
     df_agrupado = pd.merge(df_agrupado, df_paxs_in[['Mes_Ano', 'Total_Paxs']], on='Mes_Ano', how='left')
 
+    df_agrupado['Ano'] = df_agrupado['Mes_Ano'].dt.year
+
+    df_agrupado['Mes'] = df_agrupado['Mes_Ano'].dt.month
+
     df_agrupado['Paxs'] = df_agrupado[['Paxs ADT', 'Total_Paxs']].max(axis=1)
 
     df_agrupado = df_agrupado.drop(columns=['Paxs ADT', 'Total_Paxs'])
@@ -355,12 +359,17 @@ def plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal):
 
         mes_nome = next((chave for chave, valor in st.session_state.meses_disponiveis.items() if valor == mes), None)
         
-        fig = px.bar(df_mes, x='Setor', y='Valor_Total', color='Ano',
-                    title=f'Valor Total por Setor Ano a Ano - Ref. {mes_nome}',
-                    labels={'Valor_Total': 'Valor Total', 'Setor': 'Setor'},
-                    text=df_mes['Valor_Total'].apply(formatar_moeda),
-                    color_discrete_sequence=['#047c6c', '#3CB371', '#90EE90'],
-                    barmode='group')
+        fig = px.bar(
+            df_mes, 
+            x='Setor', 
+            y='Valor_Total', 
+            color='Ano',
+            title=f'Valor Total por Setor Ano a Ano - Ref. {mes_nome}',
+            labels={'Valor_Total': 'Valor Total', 'Setor': 'Setor'},
+            text=df_mes['Valor_Total'].apply(formatar_moeda),
+            color_discrete_sequence=['#047c6c', '#3CB371', '#90EE90'],
+            barmode='group'
+            )
         fig.update_traces(
             textposition='outside',
             textfont=dict(size=10)
@@ -513,7 +522,46 @@ def plotar_grafico_ticket_medio(df_filtro_receita):
     st.plotly_chart(fig_tm)
 
 st.set_page_config(layout='wide')
+st.session_state.base_luck = 'test_phoenix_joao_pessoa'
 
+st.session_state.id_gsheet_metas_vendas = '1rkHSZ8fGqcITG9GMPzWCdIsCW11aC51-HfxggTeeLZQ'
+
+st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total ADT', 'Total CHD']
+
+st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
+
+st.session_state.lista_colunas_numero_df_metas_vendedor = ['Meta_Mes']
+
+st.session_state.lista_colunas_data_df_metas_vendedor = ['Data']
+
+st.session_state.lista_colunas_numero_df_metas = ['Meta_Guia', 'Meta_PDV', 'Meta_HV', 'Meta_Grupos', 'Meta_VendasOnline', 'Paxs_Desc']
+
+st.session_state.lista_colunas_data_df_metas = ['Data']
+
+st.session_state.lista_colunas_numero_df_historico = ['Valor_Venda', 'Paxs ADT', 'Paxs CHD']
+
+st.session_state.lista_colunas_data_df_historico = ['Data']
+
+st.session_state.lista_colunas_numero_df_historico_vendedor = ['Valor', 'Meta', 'Paxs_Total']
+
+st.session_state.lista_colunas_data_df_historico_vendedor = ['Data']
+
+st.session_state.id_gsheet_reembolsos = '1dmcVUq7Bl_ipxPyxY8IcgxT7dCmTh_FLxYJqGigoSb0'
+
+st.session_state.lista_colunas_numero_df_reembolsos = ['Valor_Total']
+
+st.session_state.lista_colunas_data_df_reembolsos = ['Data_venc']
+
+st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
+                                        'Dezembro': 12}
+
+st.session_state.setores_desejados_gerencial = ['EVENTOS', 'GRUPOS', 'GUIA', 'HOTEL VENDAS', 'PDV', 'VENDAS ONLINE']
+
+st.session_state.setores_desejados_historico_por_vendedor = ['PDV', 'GUIA', 'HOTEL VENDAS', 'VENDAS ONLINE']
+
+st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
+                                'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
+                                'PISCINAS DO EXTREMO ORIENTAL', 'PRAIAS DA COSTA DO CONDE']
 st.title('Gerencial - Ano a Ano')
 
 st.divider()
@@ -548,7 +596,7 @@ setores = df_filtrado['Setor'].unique()
 
 plotar_graficos_linha_por_setor(setores, df_agrupado)
 
-df_vendas_mensal = df_vendas.groupby(['Mes', 'Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
+df_vendas_mensal = df_filtrado.groupby(['Mes', 'Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
 
 plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal)
 
