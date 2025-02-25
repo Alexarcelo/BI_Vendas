@@ -78,8 +78,8 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in):
             df_vendas['Desconto_Global_Ajustado'] = df_vendas.apply(lambda row: row['Desconto_Global_Por_Servico'] if pd.notna(row['Desconto_Global_Por_Servico']) and 
                                                                     row['Desconto_Global_Por_Servico'] < 1000 and row['Nome_Servico'] != 'EXTRA' else 0, axis=1)
 
-        df_vendas = df_vendas.groupby(['Vendedor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum', 'Desconto_Global_Por_Servico': 'sum', 'Meta': 'first', 'Ano': 'mean', 
-                                                                                                  'Mes': 'mean', 'Setor': 'first'})
+        df_vendas = df_vendas.groupby(['Vendedor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Por_Servico': 'sum', 'Meta': 'first', 
+                                                                                                  'Ano': 'mean', 'Mes': 'mean', 'Setor': 'first'})
         
         return df_vendas
     
@@ -91,7 +91,7 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in):
 
         df_vendas = pd.merge(df_vendas, df_guias_in[['Vendedor', 'Mes_Ano','Total_Paxs']], on=['Vendedor', 'Mes_Ano'], how='left')
 
-        df_vendas = pd.merge(df_vendas, st.session_state.df_metas_vendedor[['Vendedor', 'Setor', 'Mes_Ano', 'Meta_Mes']], on=['Vendedor', 'Setor', 'Mes_Ano'], how='left')
+        df_vendas = pd.merge(df_vendas, st.session_state.df_metas_vendedor[['Vendedor', 'Mes_Ano', 'Meta_Mes']], on=['Vendedor', 'Mes_Ano'], how='left')
 
         return df_vendas
     
@@ -103,7 +103,7 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in):
 
         df_vendas.loc[df_vendas['Setor'] != 'GUIA', 'Total_Paxs'] = df_vendas['Paxs_Real']
 
-        df_vendas['Venda_Filtrada'] = df_vendas['Valor_Venda'].fillna(0) - df_vendas['Valor_Total'].fillna(0)
+        df_vendas['Venda_Filtrada'] = df_vendas['Valor_Venda'].fillna(0) - df_vendas['Valor_Reembolso'].fillna(0)
 
         df_vendas['Ticket_Medio'] = df_vendas['Venda_Filtrada'] / df_vendas['Total_Paxs']
 
