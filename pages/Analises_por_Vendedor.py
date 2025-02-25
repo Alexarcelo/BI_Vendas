@@ -534,7 +534,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
     if any(key not in st.session_state for key in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in']):
 
-        with st.spinner('Puxando reembolsos, configurações, histórico...'):
+        with st.spinner('Puxando configurações, histórico vendedores, metas de vendedores e metas de setores...'):
 
             puxar_df_config()
 
