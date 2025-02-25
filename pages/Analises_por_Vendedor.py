@@ -18,8 +18,6 @@ def gerar_df_historico_vendedor():
 
     tratar_colunas_numero_df(st.session_state.df_historico_vendedor, st.session_state.lista_colunas_numero_df_historico_vendedor)
 
-    tratar_colunas_data_df(st.session_state.df_historico_vendedor, st.session_state.lista_colunas_data_df_historico_vendedor)
-
     st.session_state.df_historico_vendedor['Mes_Ano'] = pd.to_datetime(st.session_state.df_historico_vendedor['Ano'].astype(str) + '-' + 
                                                                        st.session_state.df_historico_vendedor['Mes'].astype(str) + '-01').dt.to_period('M')                                                               
 
