@@ -160,7 +160,7 @@ def gerar_df_vendas_final():
 
         df_vendas['Mes_Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.to_period('M')
 
-        df_vendas['Total Paxs'] = df_vendas['Total ADT'].fillna(0) + df_vendas['Total CHD'].fillna(0) / 2
+        df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0) / 2
 
         return df_vendas
     
@@ -237,7 +237,7 @@ def gerar_df_guias_in():
     
     st.session_state.df_guias_in = gerar_df_phoenix(st.session_state.base_luck, request_select)
 
-    st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total ADT'].fillna(0) + (st.session_state.df_guias_in['Total CHD'].fillna(0) / 2)
+    st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + (st.session_state.df_guias_in['Total_CHD'].fillna(0) / 2)
 
     st.session_state.df_guias_in['Data da Escala'] = pd.to_datetime(st.session_state.df_guias_in['Data da Escala']).dt.date
 
@@ -264,7 +264,7 @@ def gerar_df_paxs_in():
     
     st.session_state.df_paxs_in['Mes_Ano'] = pd.to_datetime(st.session_state.df_paxs_in['Data_Execucao']).dt.to_period('M')
 
-    st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total ADT'] + (st.session_state.df_paxs_in['Total CHD'] / 2)
+    st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'] + (st.session_state.df_paxs_in['Total_CHD'] / 2)
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -866,13 +866,19 @@ if not 'base_luck' in st.session_state:
 
         st.session_state.setores_desejados_gerencial = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
 
+        st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
+                                              'Dezembro': 12}
+        
+        st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
+                                                   'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
+
     elif base_fonte=='jpa':
 
         st.session_state.base_luck = 'test_phoenix_joao_pessoa'
 
         st.session_state.id_gsheet_metas_vendas = '1lM3FrBElaVfR-muyt8uFsxDUXOEaSXoPbUlHNJPdgaA'
         
-        st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total ADT', 'Total CHD']
+        st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total_ADT', 'Total_CHD']
         
         st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
         
@@ -898,6 +904,9 @@ if not 'base_luck' in st.session_state:
         
         st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
                                               'Dezembro': 12}
+        
+        st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
+                                                   'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
         
         st.session_state.setores_desejados_gerencial = ['EVENTOS', 'GRUPOS', 'GUIA', 'HOTEL VENDAS', 'PDV', 'VENDAS ONLINE']
         
