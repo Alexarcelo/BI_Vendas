@@ -822,7 +822,9 @@ def plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2=None):
 
         st.plotly_chart(fig)
 
-st.set_page_config(layout='wide')
+if __name__ == '__main__':
+    
+    st.set_page_config(layout='wide')
 
 if not 'base_luck' in st.session_state:
     
