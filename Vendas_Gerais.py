@@ -172,7 +172,7 @@ def gerar_df_vendas_final():
                                                                                         'COORD. ESCALA': 'LOGISTICA', 'KUARA/MANSEAR': 'LOGISTICA', 'MOTORISTA': 'LOGISTICA', 
                                                                                         'SUP. LOGISTICA': 'LOGISTICA'})
             
-            dict_setor_meta = {'GUIA': 'Meta_Guia', 'PDV': 'Meta_PDV', 'HOTEL VENDAS': 'Meta_HV', 'GRUPOS': 'Meta_Grupos', 'VENDAS ONLINE': 'Meta_VendasOnline'}
+            dict_setor_meta = {'GUIA': 'Guia', 'PDV': 'Desks', 'HOTEL VENDAS': 'Hotel Vendas', 'GRUPOS': 'Grupos', 'VENDAS ONLINE': 'Vendas Online'}
 
             df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
 
@@ -320,7 +320,7 @@ def colher_selecoes_vendedor_canal_hotel(df_vendas, col1):
 
         lista_canal.insert(0, '--- Todos ---')
 
-        lista_hotel = sorted(df_vendas['Nome_Estabelecimento_Origem'].dropna().unique().tolist())
+        lista_hotel = sorted(df_vendas['Estabelecimento_Origem'].dropna().unique().tolist())
 
         lista_hotel.insert(0, '--- Todos ---')
 
@@ -356,7 +356,7 @@ def filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona
     
     if len(seleciona_hotel)>0 and '--- Todos ---' not in seleciona_hotel:
 
-        df_vendas = df_vendas[df_vendas['Nome_Estabelecimento_Origem'].isin(seleciona_hotel)]
+        df_vendas = df_vendas[df_vendas['Estabelecimento_Origem'].isin(seleciona_hotel)]
 
     if len(filtrar_servicos_terceiros)>0:
 
@@ -440,7 +440,7 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
 
     df_vendas_agrupado['Venda_Filtrada'] = df_vendas_agrupado['Valor_Venda'].fillna(0) - df_vendas_agrupado['Valor_Reembolso'].fillna(0)
 
-    df_vendas_agrupado['Venda_por_Reserva'] = df_vendas_agrupado['Servico'] / df_vendas_agrupado['Cod_Reserva']
+    df_vendas_agrupado['Venda_por_Reserva'] = df_vendas_agrupado['Servico'] / df_vendas_agrupado['Reserva']
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -999,13 +999,13 @@ if len(seleciona_setor)>0:
 
     if st.session_state.base_luck=='test_phoenix_natal':
 
-        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs()
+        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
 
         df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
 
     else:
 
-        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs()
+        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
 
     df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
 
@@ -1077,9 +1077,9 @@ if len(seleciona_setor)>0:
 
             st.subheader('Vendas por Hotel')
 
-            df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']] = df_hotel[['Valor_Venda', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
+            df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
 
-            st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Valor_Venda']], hide_index=True, use_container_width=True)
+            st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Vendas']], hide_index=True, use_container_width=True)
             
             if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
