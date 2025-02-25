@@ -894,9 +894,7 @@ if not 'base_luck' in st.session_state:
         
         st.session_state.lista_colunas_data_df_historico = ['Data']
         
-        st.session_state.lista_colunas_numero_df_historico_vendedor = ['Valor', 'Meta', 'Paxs_Total']
-        
-        st.session_state.lista_colunas_data_df_historico_vendedor = ['Data']
+        st.session_state.lista_colunas_numero_df_historico_vendedor = ['Ano', 'Mes', 'Valor', 'Meta', 'Paxs_Total']
 
         st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
         
