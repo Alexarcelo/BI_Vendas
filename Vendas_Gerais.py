@@ -135,9 +135,9 @@ def gerar_df_vendas_final():
 
         df_vendas['Vendedor'] = df_vendas['Vendedor'].replace('SORAYA - TRANSFERISTA', 'SORAYA - GUIA')
 
-        df_vendas.loc[df_vendas['Vendedor']=='SORAYA - GUIA', 'Setor'] = 'Guia'
+        df_vendas.loc[df_vendas['Vendedor']=='SORAYA - GUIA', 'Setor'] = 'Transferista'
 
-        df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year>=2025), ['Vendedor', 'Setor']] = ['LETICIA - GUIA', 'Guia']
+        df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year>=2025), ['Vendedor', 'Setor']] = ['LETICIA - GUIA', 'Transferista']
 
         df_vendas.loc[(df_vendas['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df_vendas['Data_Venda']).dt.year<2025), ['Vendedor', 'Setor']] = ['LETICIA - PDV', 'Desks']
 
@@ -170,26 +170,11 @@ def gerar_df_vendas_final():
     
     def criar_coluna_setor_definir_metas(df_vendas):
 
-        if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+        df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
 
-            df_vendas['Setor'] = df_vendas['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 'BASE AEROPORTO': 'LOGISTICA', 
-                                                                                        'COORD. ESCALA': 'LOGISTICA', 'KUARA/MANSEAR': 'LOGISTICA', 'MOTORISTA': 'LOGISTICA', 
-                                                                                        'SUP. LOGISTICA': 'LOGISTICA'})
-            
-            dict_setor_meta = {'GUIA': 'Guia', 'PDV': 'Desks', 'HOTEL VENDAS': 'Hotel Vendas', 'GRUPOS': 'Grupos', 'VENDAS ONLINE': 'Vendas Online'}
-
-            df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
-
-            df_vendas['Meta'] = df_vendas.apply(lambda row: df_metas_indexed.at[row['Mes_Ano'], dict_setor_meta[row['Setor']]] 
-                                                if row['Setor'] in dict_setor_meta and row['Mes_Ano'] in df_metas_indexed.index else 0, axis=1)
-            
-        else:
-
-            df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
-
-            df_vendas['Meta'] = df_vendas.apply(lambda row: df_metas_indexed.at[row['Mes_Ano'], row['Setor']] 
-                                                if row['Setor'] in df_metas_indexed.columns and row['Mes_Ano'] in df_metas_indexed.index 
-                                                else 0, axis=1)
+        df_vendas['Meta'] = df_vendas.apply(lambda row: df_metas_indexed.at[row['Mes_Ano'], row['Setor']] 
+                                            if row['Setor'] in df_metas_indexed.columns and row['Mes_Ano'] in df_metas_indexed.index 
+                                            else 0, axis=1)
         
         return df_vendas
 
@@ -279,11 +264,6 @@ def gerar_lista_setor():
     lista_setor = sorted(st.session_state.df_vendas_final['Setor'].str.strip().dropna().unique().tolist())
 
     lista_setor.insert(0, '--- Todos ---')
-
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        lista_setor = [item for item in lista_setor if item not in ['COORD. FINANCEIRO', 'COORD. VENDAS', 'LOGISTICA', 'SAC', 'GUIA TOUR AZUL', 'PLANEJAMENTO ESTRATÉGICO', 'COMERCIAL', 'DIRETORA', 
-                                                                    'SUP. EXPERIÊNCIA AO CLIENTE/SAC']]
 
     return lista_setor
 
@@ -448,7 +428,7 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-        df_vendas_agrupado['Ticket_Medio'] = np.where(df_vendas_agrupado['Setor'] == 'GUIA', df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Paxs_IN'], 
+        df_vendas_agrupado['Ticket_Medio'] = np.where(df_vendas_agrupado['Setor'].isin(['Guia', 'Transferista']), df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Paxs_IN'], 
                                                     df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Total_Paxs'])
         
         df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Ticket_Medio'].fillna(0)
@@ -460,7 +440,7 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
         df_vendas_agrupado = df_vendas_agrupado.merge(df_ocupacao_hoteis, on='Vendedor', how='left')
 
         df_vendas_agrupado['Ticket_Medio'] = np.where(
-            df_vendas_agrupado['Setor'].str.upper().isin(['GUIA', 'TRANSFERISTA']), 
+            df_vendas_agrupado['Setor'].str.upper().isin(['Guia', 'Transferista']), 
             df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Paxs_IN'],
             np.where(
                 pd.notna(df_vendas_agrupado['Paxs Hotel']),
@@ -495,11 +475,17 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
         return f'{round(med_desconto, 2)}%'
     
-    df_vendas_setores_desejados = df_vendas_agrupado[df_vendas_agrupado['Setor'].isin(st.session_state.setores_desejados_gerencial)]
+    df_vendas_setores_desejados = df_vendas_agrupado[pd.notna(df_vendas_agrupado['Setor'])]
         
     soma_vendas = df_vendas_setores_desejados['Venda_Filtrada'].sum()
 
-    tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
+    if len(seleciona_setor)==1 and seleciona_setor[0]=='Transferista':
+
+        tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs_IN'].fillna(0).sum()
+
+    else:
+
+        tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
 
     if (st.session_state.seleciona_setor[0]=='--- Todos ---' and len(st.session_state.seleciona_setor)==1):
         
@@ -509,7 +495,13 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
         df_setor_meta = df_vendas_setores_desejados.groupby('Setor', as_index=False)['Meta'].first()
 
-        tm_setor_estip = df_setor_meta['Meta'].sum()
+        if 'Guia' in seleciona_setor and 'Transferista' in seleciona_setor:
+
+            tm_setor_estip = df_setor_meta[df_setor_meta['Setor']!='Transferista']['Meta'].sum()
+
+        else:
+
+            tm_setor_estip = df_setor_meta['Meta'].sum()
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -519,7 +511,13 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
         total_desconto = df_vendas_setores_desejados['Desconto_Global_Ajustado'].sum()
 
-    paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
+    if len(seleciona_setor)==1 and seleciona_setor[0]=='Transferista':
+
+        paxs_recebidos = int(df_vendas_setores_desejados['Paxs_IN'].fillna(0).sum())
+
+    else:
+
+        paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
 
     med_desconto = gerar_media_descontos(total_desconto, soma_vendas)
 
@@ -783,10 +781,10 @@ def ajustar_valor_venda_servicos_guias_com_adicional(df_vendas):
 
     mask_servicos_guias_com_adicional = (pd.notna(df_vendas['Adicional'])) & (df_vendas['Setor']=='Guia')
 
-    df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor_Venda'] = df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor_Venda'].fillna(0) - \
-        df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor Adicional'].fillna(0)
+    df_vendas['Valor Adicional Total'] = df_vendas['Valor Adicional Adt']*df_vendas['Total_ADT']+df_vendas['Valor Adicional Chd']*df_vendas['Total_CHD']
 
-    df_vendas = df_vendas.drop(columns=['Valor Adicional'])
+    df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor_Venda'] = df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor_Venda'].fillna(0) - \
+        df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor Adicional Total'].fillna(0)
 
     return df_vendas
 
@@ -830,359 +828,361 @@ if __name__ == '__main__':
     
     st.set_page_config(layout='wide')
 
-if not 'base_luck' in st.session_state:
-    
-    base_fonte = st.query_params["base_luck"]
-
-    if base_fonte=='mcz':
-
-        st.session_state.base_luck = 'test_phoenix_maceio'
+    if not 'base_luck' in st.session_state:
         
-    elif base_fonte=='rec':
+        base_fonte = st.query_params["base_luck"]
 
-        st.session_state.base_luck = 'test_phoenix_recife'
+        if base_fonte=='mcz':
 
-    elif base_fonte=='ssa':
-
-        st.session_state.base_luck = 'test_phoenix_salvador'
-
-    elif base_fonte=='aju':
-
-        st.session_state.base_luck = 'test_phoenix_aracaju'
-
-    elif base_fonte=='fen':
-
-        st.session_state.base_luck = 'test_phoenix_noronha'
-
-    elif base_fonte=='nat':
-
-        st.session_state.base_luck = 'test_phoenix_natal'
-
-        st.session_state.id_gsheet_metas_vendas = '11x9ht-Z73MpZJT0aySRDJOlfzpDCmOqOddkNLslzj84'
-
-        st.session_state.lista_colunas_numero_df_metas_vendedor = ['Ano', 'Mes', 'Meta_Mes']
-        
-        st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas', 'Meta_Total']
-
-        st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
-
-        st.session_state.lista_colunas_numero_df_ocupacao_hoteis = ['Ano', 'Mes', 'Paxs Hotel']
-
-        st.session_state.lista_colunas_numero_df_custos_com_adicionais = ['Valor Adicional']
-
-        st.session_state.setores_desejados_gerencial = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
-
-        st.session_state.setores_desejados_historico_por_vendedor = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
-
-        st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
-                                              'Dezembro': 12}
-        
-        st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
-                                                   'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
-
-    elif base_fonte=='jpa':
-
-        st.session_state.base_luck = 'test_phoenix_joao_pessoa'
-
-        st.session_state.id_gsheet_metas_vendas = '1lM3FrBElaVfR-muyt8uFsxDUXOEaSXoPbUlHNJPdgaA'
-        
-        st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total_ADT', 'Total_CHD']
-        
-        st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
-        
-        st.session_state.lista_colunas_numero_df_metas_vendedor = ['Ano', 'Mes', 'Meta_Mes']
-        
-        st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Guia', 'Desks', 'Hotel Vendas', 'Grupos', 'Vendas Online', 'Paxs_Desc', 'Meta_Total']
-        
-        st.session_state.lista_colunas_numero_df_historico = ['Valor_Venda', 'Paxs ADT', 'Paxs CHD']
-        
-        st.session_state.lista_colunas_data_df_historico = ['Data']
-        
-        st.session_state.lista_colunas_numero_df_historico_vendedor = ['Ano', 'Mes', 'Valor', 'Meta', 'Paxs_Total']
-
-        st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
-        
-        st.session_state.id_gsheet_reembolsos = '1dmcVUq7Bl_ipxPyxY8IcgxT7dCmTh_FLxYJqGigoSb0'
-        
-        st.session_state.lista_colunas_numero_df_reembolsos = ['Valor_Total']
-        
-        st.session_state.lista_colunas_data_df_reembolsos = ['Data_venc']
-        
-        st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
-                                              'Dezembro': 12}
-        
-        st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
-                                                   'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
-        
-        st.session_state.setores_desejados_gerencial = ['EVENTOS', 'GRUPOS', 'GUIA', 'HOTEL VENDAS', 'PDV', 'VENDAS ONLINE']
-        
-        st.session_state.setores_desejados_historico_por_vendedor = ['PDV', 'GUIA', 'HOTEL VENDAS', 'VENDAS ONLINE']
-        
-        st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
-                                        'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
-                                        'PISCINAS DO EXTREMO ORIENTAL', 'PRAIAS DA COSTA DO CONDE']
-
-st.title('Vendas Gerais por Setor')
-
-st.divider()
-
-if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-    if any(key not in st.session_state for key in ['df_metas_vendedor', 'df_metas', 'df_config', 'df_vendas_final', 'df_guias_in', 'df_paxs_in']):
-
-        with st.spinner('Puxando metas de vendedores, metas de setores e configurações...'):
-
-            gerar_df_metas_vendedor()
-
-            gerar_df_metas()
-
-            puxar_df_config()
-
-        with st.spinner('Puxando vendas, guias IN e paxs IN do Phoenix...'):
-
-            st.session_state.df_vendas_final = gerar_df_vendas_final()
-
-            gerar_df_guias_in()
-
-            gerar_df_paxs_in()
-
-elif st.session_state.base_luck == 'test_phoenix_natal':
-
-    if any(key not in st.session_state for key in ['df_metas_vendedor', 'df_metas', 'df_ocupacao_hoteis', 'df_custos_com_adicionais', 'df_juntar_servicos', 'df_config', 'df_vendas_final', 
-                                                   'df_guias_in', 'df_paxs_in']):
-
-        with st.spinner('Puxando metas de vendedores, metas de setores, ocupação de hoteis, custos com adicionais, junção de serviços e configurações...'):
-
-            gerar_df_metas_vendedor()
-
-            gerar_df_metas()
-
-            gerar_df_ocupacao_hoteis()
-
-            gerar_df_custos_com_adicionais()
-
-            puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'Juntar Serviços', 'df_juntar_servicos')
-
-            puxar_df_config()
-
-        with st.spinner('Puxando vendas, guias IN e paxs IN do Phoenix...'):
-
-            st.session_state.df_vendas_final = gerar_df_vendas_final()
-
-            gerar_df_guias_in()
-
-            gerar_df_paxs_in()
-
-lista_setor = gerar_lista_setor()
-
-col1, col2, col3 = st.columns([1.5, 3.0, 4.50])
-
-with col1:
-
-    with st.container():
-
-        col1_1, col1_2 = st.columns(2)
-
-        with col1_1:
-
-            primeiro_dia_mes = pd.to_datetime('today').to_period('M').start_time.date()
-
-            data_ini = st.date_input('Data Início', value=primeiro_dia_mes, format='DD/MM/YYYY', key='data_ini_on')
-
-            mes_ano_ini = pd.to_datetime(data_ini).to_period('M')
-
-        with col1_2:
-
-            ultimo_dia_mes = pd.to_datetime('today').to_period('M').end_time.date()
+            st.session_state.base_luck = 'test_phoenix_maceio'
             
-            data_fim = st.date_input('Data Fim', value=ultimo_dia_mes, format='DD/MM/YYYY', key='data_fim_on')  
+        elif base_fonte=='rec':
 
-            mes_ano_fim = pd.to_datetime(data_fim).to_period('M')
+            st.session_state.base_luck = 'test_phoenix_recife'
 
-    seleciona_setor = st.multiselect('Setor', sorted(lista_setor), default=None, key='seleciona_setor')
+        elif base_fonte=='ssa':
 
-if len(seleciona_setor)>0:
+            st.session_state.base_luck = 'test_phoenix_salvador'
 
-    if st.session_state.base_luck=='test_phoenix_natal':
+        elif base_fonte=='aju':
 
-        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+            st.session_state.base_luck = 'test_phoenix_aracaju'
 
-        df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+        elif base_fonte=='fen':
 
-    else:
+            st.session_state.base_luck = 'test_phoenix_noronha'
 
-        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+        elif base_fonte=='nat':
 
-    df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
+            st.session_state.base_luck = 'test_phoenix_natal'
 
-    if not '--- Todos ---' in seleciona_setor:
+            st.session_state.id_gsheet_metas_vendas = '11x9ht-Z73MpZJT0aySRDJOlfzpDCmOqOddkNLslzj84'
 
-        df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
-
-    if len(df_vendas)>0:
-
-        seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros = colher_selecoes_vendedor_canal_hotel(df_vendas, col1)
-
-        df_vendas = filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros)
-
-        df_hotel = gerar_df_hotel(df_vendas)
-
-        df_vendas = ajustar_desconto_global(df_vendas)
-
-        if st.session_state.base_luck=='test_phoenix_natal':
-
-            df_vendas = ajustar_valor_venda_servicos_guias_com_adicional(df_vendas)
-
-            df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor, df_ocupacao_hoteis)
-
-        else:
-
-            df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor)
-
-        df_cont_passeio = df_vendas.groupby(['Vendedor', 'Servico'], as_index=False)['Total Paxs'].sum()
-
-        with col2:
-                
-            col2_1, col2_2 = st.columns([2,5])
-
-            with col2_1:
-
-                with st.container():
-
-                    soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto = gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_metas_setor)
-
-                    meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado(soma_vendas, tm_setor_estip, paxs_recebidos)
-
-                    plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
-
-                    plotar_quadrados_html('Meta Estimada', meta_esperada_formatada)
-
-                    plotar_quadrados_html('Meta de TM', formatar_moeda(tm_setor_estip))
-
-                    plotar_quadrados_html('Total Descontos', formatar_moeda(total_desconto))
-
-            with col2_2:
-                    
-                with st.container():
-
-                    plotar_quadrados_html('% Alcancado', perc_alcancado)
-
-                    plotar_quadrados_html('Paxs Recebidos', paxs_recebidos)
-
-                    plotar_quadrados_html('Meta Atingida', formatar_moeda(tm_vendas))
-
-                    plotar_quadrados_html('Media de Descontos', med_desconto)
-
-        with col3:
-
-            df_estilizado = gerar_df_estilizado(df_vendas_agrupado)
-
-            st.subheader('Vendas por Vendedor')
-
-            st.dataframe(df_estilizado, hide_index=True, use_container_width=True)
-
-            st.subheader('Vendas por Hotel')
-
-            df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
-
-            st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Vendas']], hide_index=True, use_container_width=True)
+            st.session_state.lista_colunas_numero_df_metas_vendedor = ['Ano', 'Mes', 'Meta_Mes']
             
-            if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
+            st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas', 'Meta_Total']
 
-                df_setor_agrupado = df_vendas_agrupado[df_vendas_agrupado['Setor'].isin(st.session_state.setores_desejados_gerencial)].groupby('Setor', as_index=False)['Venda_Filtrada'].sum()
+            st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
 
-                if not df_setor_agrupado.empty:
+            st.session_state.lista_colunas_numero_df_ocupacao_hoteis = ['Ano', 'Mes', 'Paxs Hotel']
 
-                    fig = gerar_grafico_todos_setores(df_setor_agrupado)
+            st.session_state.lista_colunas_numero_df_custos_com_adicionais = ['Valor Adicional Adt', 'Valor Adicional Chd']
 
-            else:
+            st.session_state.setores_desejados_gerencial = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
 
-                if len(seleciona_setor)==1 and seleciona_setor[0]=='GUIA':
-                
-                    df_vendas_grafico = df_vendas_agrupado[(pd.notna(df_vendas_agrupado['Paxs_IN'])) & (df_vendas_agrupado['Paxs_IN']>=20)]
+            st.session_state.setores_desejados_historico_por_vendedor = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
 
-                    fig = gerar_grafico_setor_especifico(df_vendas_grafico)
+            st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
+                                                'Dezembro': 12}
+            
+            st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
+                                                    'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
 
-                else:
+        elif base_fonte=='jpa':
 
-                    fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+            st.session_state.base_luck = 'test_phoenix_joao_pessoa'
 
-            st.plotly_chart(fig, key="key_1")
+            st.session_state.id_gsheet_metas_vendas = '1lM3FrBElaVfR-muyt8uFsxDUXOEaSXoPbUlHNJPdgaA'
+            
+            st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total_ADT', 'Total_CHD']
+            
+            st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
+            
+            st.session_state.lista_colunas_numero_df_metas_vendedor = ['Ano', 'Mes', 'Meta_Mes']
+            
+            st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Transferista', 'Guia', 'Desks', 'Hotel Vendas', 'Grupos', 'Vendas Online', 'Paxs_Desc', 'Meta_Total']
+            
+            st.session_state.lista_colunas_numero_df_historico = ['Valor_Venda', 'Paxs ADT', 'Paxs CHD']
+            
+            st.session_state.lista_colunas_data_df_historico = ['Data']
+            
+            st.session_state.lista_colunas_numero_df_historico_vendedor = ['Ano', 'Mes', 'Valor', 'Meta', 'Paxs_Total']
 
-    else:
+            st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
+            
+            st.session_state.id_gsheet_reembolsos = '1dmcVUq7Bl_ipxPyxY8IcgxT7dCmTh_FLxYJqGigoSb0'
+            
+            st.session_state.lista_colunas_numero_df_reembolsos = ['Valor_Total']
+            
+            st.session_state.lista_colunas_data_df_reembolsos = ['Data_venc']
+            
+            st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
+                                                'Dezembro': 12}
+            
+            st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
+                                                    'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
+            
+            st.session_state.setores_desejados_historico_por_vendedor = ['PDV', 'GUIA', 'HOTEL VENDAS', 'VENDAS ONLINE']
+            
+            st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
+                                            'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
+                                            'PISCINAS DO EXTREMO ORIENTAL', 'PRAIAS DA COSTA DO CONDE']
 
-        st.error('O setor selecionado não possui venda nesse período')
+    st.title('Vendas Gerais por Setor')
 
-row0 = st.columns(2)
-
-if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
-
-    df_todos_vendedores_filtrado = gerar_df_todos_vendedores_filtrado(df_cont_passeio, st.session_state.passeios_incluidos)
-
-    if st.session_state.base_luck == 'test_phoenix_natal' and len(filtrar_servicos_terceiros)==0:
-
-        df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Serviços Terceiros'])
-
-        fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_todos_vendedores(df_servicos_casa_vs_terceiros)
-
-    if not df_todos_vendedores_filtrado.empty:
-
-        fig = gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, st.session_state.passeios_incluidos)
-
-        if st.session_state.base_luck == 'test_phoenix_natal':
-
-            plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2)
-
-        elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-            plotar_graficos_pizza_todos_vendedores(row0, fig)
-
-elif len(seleciona_setor)>0 and len(df_vendas)>0:
+    st.divider()
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-        coluna = 0
+        if any(key not in st.session_state for key in ['df_metas_vendedor', 'df_metas', 'df_config', 'df_vendas_final', 'df_guias_in', 'df_paxs_in']):
 
-        for vendedor in df_cont_passeio['Vendedor'].unique():
+            with st.spinner('Puxando metas de vendedores, metas de setores e configurações...'):
 
-            df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
-            
-            if not df_vendedor_filtrado.empty:
+                gerar_df_metas_vendedor()
 
-                fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
+                gerar_df_metas()
 
-                with row0[coluna%2]:
-            
-                    st.plotly_chart(fig)
+                puxar_df_config()
 
-                coluna+=1
+            with st.spinner('Puxando vendas, guias IN e paxs IN do Phoenix...'):
+
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+                gerar_df_guias_in()
+
+                gerar_df_paxs_in()
 
     elif st.session_state.base_luck == 'test_phoenix_natal':
 
-        df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Vendedor', 'Serviços Terceiros'])
+        if any(key not in st.session_state for key in ['df_metas_vendedor', 'df_metas', 'df_ocupacao_hoteis', 'df_custos_com_adicionais', 'df_juntar_servicos', 'df_config', 'df_vendas_final', 
+                                                    'df_guias_in', 'df_paxs_in']):
 
-        coluna = 0
+            with st.spinner('Puxando metas de vendedores, metas de setores, ocupação de hoteis, custos com adicionais, junção de serviços e configurações...'):
 
-        for vendedor in df_cont_passeio['Vendedor'].unique():
+                gerar_df_metas_vendedor()
 
-            df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
+                gerar_df_metas()
 
-            df_servicos_casa_vs_terceiros_vendedor = df_servicos_casa_vs_terceiros[df_servicos_casa_vs_terceiros['Vendedor']==vendedor]
-            
-            if not df_vendedor_filtrado.empty:
+                gerar_df_ocupacao_hoteis()
 
-                fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
+                gerar_df_custos_com_adicionais()
 
-                fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_vendedor(df_servicos_casa_vs_terceiros_vendedor, vendedor)
+                puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'Juntar Serviços', 'df_juntar_servicos')
 
-                with row0[coluna%2]:
-            
-                    st.plotly_chart(fig)
+                puxar_df_config()
 
-                coluna+=1
+            with st.spinner('Puxando vendas, guias IN e paxs IN do Phoenix...'):
 
-                with row0[coluna%2]:
-            
-                    st.plotly_chart(fig_2)
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
 
-                coluna+=1
+                gerar_df_guias_in()
+
+                gerar_df_paxs_in()
+
+    lista_setor = gerar_lista_setor()
+
+    col1, col2, col3 = st.columns([1.5, 3.0, 4.50])
+
+    with col1:
+
+        with st.container():
+
+            col1_1, col1_2 = st.columns(2)
+
+            with col1_1:
+
+                primeiro_dia_mes = pd.to_datetime('today').to_period('M').start_time.date()
+
+                data_ini = st.date_input('Data Início', value=primeiro_dia_mes, format='DD/MM/YYYY', key='data_ini_on')
+
+                mes_ano_ini = pd.to_datetime(data_ini).to_period('M')
+
+            with col1_2:
+
+                ultimo_dia_mes = pd.to_datetime('today').to_period('M').end_time.date()
+                
+                data_fim = st.date_input('Data Fim', value=ultimo_dia_mes, format='DD/MM/YYYY', key='data_fim_on')  
+
+                mes_ano_fim = pd.to_datetime(data_fim).to_period('M')
+
+        seleciona_setor = st.multiselect('Setor', sorted(lista_setor), default=None, key='seleciona_setor')
+
+    if len(seleciona_setor)>0:
+
+        if st.session_state.base_luck=='test_phoenix_natal':
+
+            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+
+            df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+
+        else:
+
+            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+
+        df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
+
+        if not '--- Todos ---' in seleciona_setor:
+
+            if 'Guia' in seleciona_setor and not 'Transferista' in seleciona_setor:
+
+                seleciona_setor.append('Transferista')
+
+            df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
+
+        if len(df_vendas)>0:
+
+            seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros = colher_selecoes_vendedor_canal_hotel(df_vendas, col1)
+
+            df_vendas = filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros)
+
+            df_hotel = gerar_df_hotel(df_vendas)
+
+            df_vendas = ajustar_desconto_global(df_vendas)
+
+            if st.session_state.base_luck=='test_phoenix_natal':
+
+                df_vendas = ajustar_valor_venda_servicos_guias_com_adicional(df_vendas)
+
+                df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor, df_ocupacao_hoteis)
+
+            else:
+
+                df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor)
+
+            df_cont_passeio = df_vendas.groupby(['Vendedor', 'Servico'], as_index=False)['Total Paxs'].sum()
+
+            with col2:
+                    
+                col2_1, col2_2 = st.columns([2,5])
+
+                with col2_1:
+
+                    with st.container():
+
+                        soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto = gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_metas_setor)
+
+                        meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado(soma_vendas, tm_setor_estip, paxs_recebidos)
+
+                        plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
+
+                        plotar_quadrados_html('Meta Estimada', meta_esperada_formatada)
+
+                        plotar_quadrados_html('Meta de TM', formatar_moeda(tm_setor_estip))
+
+                        plotar_quadrados_html('Total Descontos', formatar_moeda(total_desconto))
+
+                with col2_2:
+                        
+                    with st.container():
+
+                        plotar_quadrados_html('% Alcancado', perc_alcancado)
+
+                        plotar_quadrados_html('Paxs Recebidos', paxs_recebidos)
+
+                        plotar_quadrados_html('Meta Atingida', formatar_moeda(tm_vendas))
+
+                        plotar_quadrados_html('Media de Descontos', med_desconto)
+
+            with col3:
+
+                df_estilizado = gerar_df_estilizado(df_vendas_agrupado)
+
+                st.subheader('Vendas por Vendedor')
+
+                st.dataframe(df_estilizado, hide_index=True, use_container_width=True)
+
+                st.subheader('Vendas por Hotel')
+
+                df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
+
+                st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Vendas']], hide_index=True, use_container_width=True)
+                
+                if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
+
+                    df_setor_agrupado = df_vendas_agrupado[pd.notna(df_vendas_agrupado['Setor'])].groupby('Setor', as_index=False)['Venda_Filtrada'].sum()
+
+                    if not df_setor_agrupado.empty:
+
+                        fig = gerar_grafico_todos_setores(df_setor_agrupado)
+
+                else:
+
+                    if len(seleciona_setor)==1 and seleciona_setor[0]=='GUIA':
+                    
+                        df_vendas_grafico = df_vendas_agrupado[(pd.notna(df_vendas_agrupado['Paxs_IN'])) & (df_vendas_agrupado['Paxs_IN']>=20)]
+
+                        fig = gerar_grafico_setor_especifico(df_vendas_grafico)
+
+                    else:
+
+                        fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+
+                st.plotly_chart(fig, key="key_1")
+
+        else:
+
+            st.error('O setor selecionado não possui venda nesse período')
+
+    row0 = st.columns(2)
+
+    if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
+
+        df_todos_vendedores_filtrado = gerar_df_todos_vendedores_filtrado(df_cont_passeio, st.session_state.passeios_incluidos)
+
+        if st.session_state.base_luck == 'test_phoenix_natal' and len(filtrar_servicos_terceiros)==0:
+
+            df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Serviços Terceiros'])
+
+            fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_todos_vendedores(df_servicos_casa_vs_terceiros)
+
+        if not df_todos_vendedores_filtrado.empty:
+
+            fig = gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, st.session_state.passeios_incluidos)
+
+            if st.session_state.base_luck == 'test_phoenix_natal':
+
+                plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2)
+
+            elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+                plotar_graficos_pizza_todos_vendedores(row0, fig)
+
+    elif len(seleciona_setor)>0 and len(df_vendas)>0:
+
+        if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+            coluna = 0
+
+            for vendedor in df_cont_passeio['Vendedor'].unique():
+
+                df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
+                
+                if not df_vendedor_filtrado.empty:
+
+                    fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
+
+                    with row0[coluna%2]:
+                
+                        st.plotly_chart(fig)
+
+                    coluna+=1
+
+        elif st.session_state.base_luck == 'test_phoenix_natal':
+
+            df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Vendedor', 'Serviços Terceiros'])
+
+            coluna = 0
+
+            for vendedor in df_cont_passeio['Vendedor'].unique():
+
+                df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
+
+                df_servicos_casa_vs_terceiros_vendedor = df_servicos_casa_vs_terceiros[df_servicos_casa_vs_terceiros['Vendedor']==vendedor]
+                
+                if not df_vendedor_filtrado.empty:
+
+                    fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
+
+                    fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_vendedor(df_servicos_casa_vs_terceiros_vendedor, vendedor)
+
+                    with row0[coluna%2]:
+                
+                        st.plotly_chart(fig)
+
+                    coluna+=1
+
+                    with row0[coluna%2]:
+                
+                        st.plotly_chart(fig_2)
+
+                    coluna+=1
