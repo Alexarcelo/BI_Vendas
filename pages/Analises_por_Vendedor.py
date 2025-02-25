@@ -511,7 +511,7 @@ st.set_page_config(layout='wide')
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, tratar_colunas_data_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_phoenix, gerar_df_vendas_final, \
+from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_phoenix, gerar_df_vendas_final, \
     gerar_df_guias_in, gerar_df_paxs_in
 
 row_titulo = st.columns(1)
