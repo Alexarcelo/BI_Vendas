@@ -160,6 +160,10 @@ def gerar_df_vendas_final():
 
         df_vendas['Mes_Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.to_period('M')
 
+        df_vendas['Ano'] = pd.to_datetime(df_vendas['Data_Venda']).dt.year
+
+        df_vendas['Mes'] = pd.to_datetime(df_vendas['Data_Venda']).dt.month
+
         df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0) / 2
 
         return df_vendas
