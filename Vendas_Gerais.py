@@ -164,7 +164,13 @@ def gerar_df_vendas_final():
 
         df_vendas['Mes'] = pd.to_datetime(df_vendas['Data_Venda']).dt.month
 
-        df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0) / 2
+        if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+            df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0) / 2
+
+        elif st.session_state.base_luck == 'test_phoenix_natal':
+
+            df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0)
 
         return df_vendas
     
@@ -226,7 +232,13 @@ def gerar_df_guias_in():
     
     st.session_state.df_guias_in = gerar_df_phoenix(st.session_state.base_luck, request_select)
 
-    st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + (st.session_state.df_guias_in['Total_CHD'].fillna(0) / 2)
+    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+        st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + (st.session_state.df_guias_in['Total_CHD'].fillna(0) / 2)
+
+    elif st.session_state.base_luck == 'test_phoenix_natal':
+
+        st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + st.session_state.df_guias_in['Total_CHD'].fillna(0)
 
     st.session_state.df_guias_in['Data da Escala'] = pd.to_datetime(st.session_state.df_guias_in['Data da Escala']).dt.date
 
@@ -253,11 +265,15 @@ def gerar_df_paxs_in():
     
     st.session_state.df_paxs_in['Mes_Ano'] = pd.to_datetime(st.session_state.df_paxs_in['Data_Execucao']).dt.to_period('M')
 
-    st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'] + (st.session_state.df_paxs_in['Total_CHD'] / 2)
-
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
+        st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'].fillna(0) + (st.session_state.df_paxs_in['Total_CHD'].fillna(0) / 2)
+
         st.session_state.df_paxs_in = pd.merge(st.session_state.df_paxs_in, st.session_state.df_metas[['Mes_Ano', 'Paxs_Desc']], on='Mes_Ano', how='left')
+
+    elif st.session_state.base_luck == 'test_phoenix_natal':
+        
+        st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'].fillna(0) + st.session_state.df_paxs_in['Total_CHD'].fillna(0)
 
 def gerar_lista_setor():
 
