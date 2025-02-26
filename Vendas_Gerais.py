@@ -933,10 +933,6 @@ if __name__ == '__main__':
 
             st.session_state.lista_colunas_numero_df_custos_com_adicionais = ['Valor Adicional Adt', 'Valor Adicional Chd']
 
-            st.session_state.setores_desejados_gerencial = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
-
-            st.session_state.setores_desejados_historico_por_vendedor = ['Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
-
             st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
                                                 'Dezembro': 12}
             
@@ -974,8 +970,6 @@ if __name__ == '__main__':
             
             st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
                                                     'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
-            
-            st.session_state.setores_desejados_historico_por_vendedor = ['PDV', 'GUIA', 'HOTEL VENDAS', 'VENDAS ONLINE']
             
             st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
                                             'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
