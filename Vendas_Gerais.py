@@ -484,7 +484,7 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
         med_desconto = (total_desconto / (soma_vendas + total_desconto)) * 100
 
         return f'{round(med_desconto, 2)}%'
-    
+
     df_vendas_setores_desejados = df_vendas_agrupado[pd.notna(df_vendas_agrupado['Setor'])]
         
     soma_vendas = df_vendas_setores_desejados['Venda_Filtrada'].sum()
@@ -492,6 +492,10 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
     if len(seleciona_setor)==1 and seleciona_setor[0]=='Transferista':
 
         tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs_IN'].fillna(0).sum()
+
+    elif st.session_state.base_luck == 'test_phoenix_natal' and len(seleciona_setor)==1 and seleciona_setor[0]=='Desks':
+
+        tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs Hotel'].fillna(0).sum()
 
     else:
 
@@ -524,6 +528,10 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
     if len(seleciona_setor)==1 and seleciona_setor[0]=='Transferista':
 
         paxs_recebidos = int(df_vendas_setores_desejados['Paxs_IN'].fillna(0).sum())
+
+    elif st.session_state.base_luck == 'test_phoenix_natal' and len(seleciona_setor)==1 and seleciona_setor[0]=='Desks':
+
+        paxs_recebidos = int(df_vendas_setores_desejados['Paxs Hotel'].fillna(0).sum())
 
     else:
 
