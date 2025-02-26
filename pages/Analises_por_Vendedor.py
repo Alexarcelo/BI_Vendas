@@ -57,21 +57,21 @@ def gerar_df_paxs_mes():
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-        df_paxs_mes['Paxs_Real'] = df_paxs_mes['Total_Paxs'].fillna(0) + df_paxs_mes['Paxs_Desc'].fillna(0)
+        df_paxs_mes['Paxs_IN_Mensal'] = df_paxs_mes['Total_Paxs'].fillna(0) + df_paxs_mes['Paxs_Desc'].fillna(0)
 
-    else:
+    elif st.session_state.base_luck == 'test_phoenix_natal':
 
-        df_paxs_mes['Paxs_Real'] = df_paxs_mes['Total_Paxs'].fillna(0)
+        df_paxs_mes['Paxs_IN_Mensal'] = df_paxs_mes['Total_Paxs'].fillna(0)
 
     return df_paxs_mes
 
-def gerar_df_vendas(df_paxs_mes, df_guias_in):
+def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
     def gerar_df_vendas_agrupado():
 
         df_vendas = st.session_state.df_vendas_final.copy()
 
-        df_vendas = df_vendas[df_vendas['Setor'].isin(st.session_state.setores_desejados_historico_por_vendedor)]
+        df_vendas = df_vendas[pd.notna(df_vendas['Setor'])]
 
         if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -83,13 +83,19 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in):
         
         return df_vendas
     
-    def adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas):
+    def adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas, df_ocupacao_hoteis=None):
 
-        df_vendas = pd.merge(df_vendas, df_paxs_mes[['Paxs_Real', 'Mes_Ano']], on='Mes_Ano', how='left')
+        df_vendas = pd.merge(df_vendas, df_paxs_mes[['Paxs_IN_Mensal', 'Mes_Ano']], on='Mes_Ano', how='left')
 
-        df_guias_in = df_guias_in.rename(columns={'Guia': 'Vendedor'})
+        df_guias_in = df_guias_in.rename(columns={'Guia': 'Vendedor', 'Total_Paxs': 'Paxs_IN_Individual'})
 
-        df_vendas = pd.merge(df_vendas, df_guias_in[['Vendedor', 'Mes_Ano','Total_Paxs']], on=['Vendedor', 'Mes_Ano'], how='left')
+        df_vendas = pd.merge(df_vendas, df_guias_in[['Vendedor', 'Mes_Ano','Paxs_IN_Individual']], on=['Vendedor', 'Mes_Ano'], how='left')
+
+        if not df_ocupacao_hoteis is None:
+
+            df_ocupacao_hoteis = df_ocupacao_hoteis.groupby(['Mes_Ano', 'Vendedor'], as_index=False)['Paxs Hotel'].sum()
+
+            df_vendas = pd.merge(df_vendas, df_ocupacao_hoteis[['Mes_Ano', 'Vendedor', 'Paxs Hotel']], on=['Mes_Ano', 'Vendedor'], how='left')
 
         df_vendas = pd.merge(df_vendas, st.session_state.df_metas_vendedor[['Vendedor', 'Mes_Ano', 'Meta_Mes']], on=['Vendedor', 'Mes_Ano'], how='left')
 
@@ -99,21 +105,33 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in):
 
         df_vendas['Meta_Mes'] = df_vendas['Meta_Mes'].fillna(df_vendas['Meta'])
 
-        df_vendas['Total_Paxs'] = df_vendas['Total_Paxs'].fillna(0)
+        df_vendas['Paxs_IN_Individual'] = df_vendas['Paxs_IN_Individual'].fillna(0)
 
-        df_vendas.loc[df_vendas['Setor'] != 'GUIA', 'Total_Paxs'] = df_vendas['Paxs_Real']
+        df_vendas.loc[~df_vendas['Setor'].isin(['Guia', 'Transferista']), 'Paxs_IN_Individual'] = df_vendas['Paxs_IN_Mensal']
+
+        if st.session_state.base_luck == 'test_phoenix_natal':
+
+            df_vendas['Paxs Hotel'] = df_vendas['Paxs Hotel'].fillna(0)
+
+            df_vendas.loc[df_vendas['Setor']=='Desks', 'Paxs_IN_Individual'] = df_vendas['Paxs Hotel']
 
         df_vendas['Venda_Filtrada'] = df_vendas['Valor_Venda'].fillna(0) - df_vendas['Valor_Reembolso'].fillna(0)
 
-        df_vendas['Ticket_Medio'] = df_vendas['Venda_Filtrada'] / df_vendas['Total_Paxs']
+        df_vendas['Ticket_Medio'] = df_vendas['Venda_Filtrada'] / df_vendas['Paxs_IN_Individual']
 
-        df_vendas['Venda_Esperada'] = df_vendas['Total_Paxs'] * df_vendas['Meta_Mes']
+        df_vendas['Venda_Esperada'] = df_vendas['Paxs_IN_Individual'] * df_vendas['Meta_Mes']
 
         return df_vendas
     
     df_vendas = gerar_df_vendas_agrupado()
 
-    df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas)
+    if st.session_state.base_luck == 'test_phoenix_natal':
+
+        df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas, df_ocupacao_hoteis)
+
+    elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+        df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas)
 
     df_vendas = ajustar_colunas_meta_mes_total_paxs_venda_filtrada_ticket_medio_venda_esperada(df_vendas)
 
@@ -121,23 +139,29 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in):
 
 def concatenar_vendas_com_historico_vendedor(df_vendas):
 
-    df_phoenix_vendedor = df_vendas[['Vendedor', 'Setor', 'Venda_Filtrada', 'Meta_Mes', 'Total_Paxs', 'Mes_Ano', 'Ticket_Medio', 'Venda_Esperada']]
+    df_phoenix_vendedor = df_vendas[['Vendedor', 'Setor', 'Venda_Filtrada', 'Meta_Mes', 'Paxs_IN_Individual', 'Mes_Ano', 'Ticket_Medio', 'Venda_Esperada']]
 
-    df_historico_vendedor = st.session_state.df_historico_vendedor[(st.session_state.df_historico_vendedor['Mes_Ano'] != '2024-04')]\
-        [['Vendedor', 'Setor', 'Valor', 'Meta', 'Paxs_Total', 'Mes_Ano', 'Ticket_Medio', 'Venda_Esperada']]
+    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-    df_historico_vendedor = df_historico_vendedor.rename(columns={'Valor': 'Venda_Filtrada', 'Meta': 'Meta_Mes', 'Paxs_Total': 'Total_Paxs'})
+        df_historico_vendedor = st.session_state.df_historico_vendedor[(st.session_state.df_historico_vendedor['Mes_Ano'] != '2024-04')]\
+            [['Vendedor', 'Setor', 'Valor', 'Meta', 'Paxs_Total', 'Mes_Ano', 'Ticket_Medio', 'Venda_Esperada']]
 
-    df_geral_vendedor_1 = pd.concat([df_historico_vendedor, df_phoenix_vendedor], ignore_index=True)
+        df_historico_vendedor = df_historico_vendedor.rename(columns={'Valor': 'Venda_Filtrada', 'Meta': 'Meta_Mes', 'Paxs_Total': 'Paxs_IN_Individual'})
 
-    return df_geral_vendedor_1
+        df_geral_vendedor_1 = pd.concat([df_historico_vendedor, df_phoenix_vendedor], ignore_index=True)
+
+        return df_geral_vendedor_1
+    
+    elif st.session_state.base_luck == 'test_phoenix_natal':
+
+        return df_phoenix_vendedor
 
 def agrupar_ajustar_colunas_df_geral_vendedor(df_geral_vendedor_1):
 
-    df_geral_vendedor = df_geral_vendedor_1.groupby(['Vendedor', 'Mes_Ano'], as_index=False).agg({'Setor': 'first', 'Venda_Filtrada': 'sum', 'Meta_Mes': 'min', 'Total_Paxs': 'min', 
+    df_geral_vendedor = df_geral_vendedor_1.groupby(['Vendedor', 'Mes_Ano'], as_index=False).agg({'Setor': 'first', 'Venda_Filtrada': 'sum', 'Meta_Mes': 'min', 'Paxs_IN_Individual': 'min', 
                                                                                                   'Ticket_Medio': 'sum', 'Venda_Esperada': 'min'})
 
-    df_geral_vendedor['Ticket_Medio'] = np.where(df_geral_vendedor['Total_Paxs']!=0, df_geral_vendedor['Venda_Filtrada'] / df_geral_vendedor['Total_Paxs'], 0)
+    df_geral_vendedor['Ticket_Medio'] = np.where(df_geral_vendedor['Paxs_IN_Individual']!=0, df_geral_vendedor['Venda_Filtrada'] / df_geral_vendedor['Paxs_IN_Individual'], 0)
 
     df_geral_vendedor['Performance_Mes'] = df_geral_vendedor['Venda_Filtrada'] / df_geral_vendedor['Venda_Esperada']
 
@@ -146,6 +170,8 @@ def agrupar_ajustar_colunas_df_geral_vendedor(df_geral_vendedor_1):
     return df_geral_vendedor
 
 def adicionar_performance_anual_acumulado_anual_meta_anual(df_geral_vendedor):
+
+    df_geral_vendedor
 
     performance_anual = df_geral_vendedor.groupby(['Vendedor', 'Ano']).apply(lambda x: x['Venda_Filtrada'].sum() / x['Venda_Esperada'].sum() if x['Venda_Esperada'].sum() != 0 else 0)\
         .reset_index(name='Performance_Anual')
@@ -511,24 +537,8 @@ st.set_page_config(layout='wide')
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_phoenix, gerar_df_vendas_final, \
+from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_ocupacao_hoteis, gerar_df_phoenix, gerar_df_vendas_final, \
     gerar_df_guias_in, gerar_df_paxs_in
-
-row_titulo = st.columns(1)
-
-tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor', 'Meta Mês'], index=None)
-
-if tipo_analise:
-
-    with row_titulo[0]:
-
-        st.title(tipo_analise)
-
-        st.divider()
-
-else:
-
-    st.warning('Escolha um tipo de análise')
 
 if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -554,17 +564,61 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
             gerar_df_paxs_in()
 
+elif st.session_state.base_luck == 'test_phoenix_natal':
+
+    if any(key not in st.session_state for key in ['df_config', 'df_metas', 'df_metas_vendedor', 'df_ocupacao_hoteis', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in']):
+
+        with st.spinner('Puxando configurações, metas de vendedores e metas de setores...'):
+
+            puxar_df_config()
+
+            gerar_df_metas()
+
+            gerar_df_metas_vendedor()
+
+            gerar_df_ocupacao_hoteis()
+
+        with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
+
+            st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+            gerar_df_ranking()
+
+            gerar_df_guias_in()
+
+            gerar_df_paxs_in()
+
+row_titulo = st.columns(1)
+
+tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor', 'Meta Mês'], index=None)
+
+if tipo_analise:
+
+    with row_titulo[0]:
+
+        st.title(tipo_analise)
+
+        st.divider()
+
+else:
+
+    st.warning('Escolha um tipo de análise')
+
 if not 'df_geral_vendedor' in st.session_state:
 
     df_paxs_mes = gerar_df_paxs_mes()
 
     df_guias_in = st.session_state.df_guias_in.groupby(['Guia', 'Mes_Ano'], as_index=False)['Total_Paxs'].sum()
 
-    df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in)
-
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-        df_geral_vendedor_1 = concatenar_vendas_com_historico_vendedor(df_vendas)
+        df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in)
+
+    elif st.session_state.base_luck == 'test_phoenix_natal':
+
+        df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in, st.session_state.df_ocupacao_hoteis)
+
+    df_geral_vendedor_1 = concatenar_vendas_com_historico_vendedor(df_vendas)
 
     df_geral_vendedor = agrupar_ajustar_colunas_df_geral_vendedor(df_geral_vendedor_1)
 
