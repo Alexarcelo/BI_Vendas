@@ -957,9 +957,7 @@ if __name__ == '__main__':
             
             st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Transferista', 'Guia', 'Desks', 'Hotel Vendas', 'Grupos', 'Vendas Online', 'Paxs_Desc', 'Meta_Total']
             
-            st.session_state.lista_colunas_numero_df_historico = ['Valor_Venda', 'Paxs ADT', 'Paxs CHD']
-            
-            st.session_state.lista_colunas_data_df_historico = ['Data']
+            st.session_state.lista_colunas_numero_df_historico = ['Ano', 'Mes', 'Valor_Venda', 'Paxs ADT', 'Paxs CHD']
             
             st.session_state.lista_colunas_numero_df_historico_vendedor = ['Ano', 'Mes', 'Valor', 'Meta', 'Paxs_Total']
 
