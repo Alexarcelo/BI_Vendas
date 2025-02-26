@@ -403,13 +403,7 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
 
     def calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado):
 
-        if st.session_state.base_luck == 'test_phoenix_natal':
-
-            total_paxs_in = df_paxs_in[df_paxs_in['Servico'].isin(['IN - Natal ', 'IN - Camurupim'])]['Total_Paxs'].sum()
-
-        else:
-
-            total_paxs_in = df_paxs_in['Total_Paxs'].sum()
+        total_paxs_in = df_paxs_in['Total_Paxs'].sum()
 
         if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
