@@ -204,7 +204,7 @@ def colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise):
 
         with col2:
 
-            setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='vend_0002')
+            setor_selecao = st.multiselect('Selecione o Setor:', options=sorted(st.session_state.df_geral_vendedor['Setor'].unique().tolist()), default=[], key='vend_0002')
 
         return ano_selecao, setor_selecao
     
@@ -408,7 +408,7 @@ def colher_ano_mes_setor_selecao(df_vendas):
 
     with col3:
 
-        setor_selecao = st.multiselect('Selecione o Setor:', options=st.session_state.setores_desejados_historico_por_vendedor, default=[], key='met_003')
+        setor_selecao = st.multiselect('Selecione o Setor:', options=sorted(st.session_state.df_geral_vendedor['Setor'].unique().tolist()), default=[], key='met_003')
 
     return ano_selecao, mes_selecao, setor_selecao
 
