@@ -485,43 +485,106 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
         return f'{round(med_desconto, 2)}%'
 
+    def escolher_paxs_ref(row):
+
+        if row['Setor']=='Transferista':
+
+            return row['Paxs_IN']
+        
+        elif st.session_state.base_luck == 'test_phoenix_natal' and row['Setor']=='Desks':
+
+            return row['Paxs Hotel']
+        
+        else:
+
+            return row['Total_Paxs']
+        
+    def soma_ou_media_paxs(group):
+
+        if group['Setor'].iloc[0] == 'Transferista':
+
+            paxs_ref_tm = group['Paxs_Ref_TM'].sum()
+
+        else:
+
+            paxs_ref_tm = group['Paxs_Ref_TM'].mean()
+
+        meta = group['Meta'].mean()
+        
+        return pd.Series({
+            'Paxs_Ref_TM': paxs_ref_tm,
+            'Meta': meta
+        })
+
     df_vendas_setores_desejados = df_vendas_agrupado[pd.notna(df_vendas_agrupado['Setor'])]
         
     soma_vendas = df_vendas_setores_desejados['Venda_Filtrada'].sum()
 
-    if len(seleciona_setor)==1 and seleciona_setor[0]=='Transferista':
+    df_vendas_setores_desejados['Paxs_Ref_TM'] = df_vendas_setores_desejados.apply(escolher_paxs_ref, axis=1)
 
-        tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs_IN'].fillna(0).sum()
+    df_vendas_setores_desejados['Paxs_Ref_TM'] = df_vendas_setores_desejados['Paxs_Ref_TM'].fillna(0)
 
-        paxs_recebidos = int(df_vendas_setores_desejados['Paxs_IN'].fillna(0).sum())
+    if len(seleciona_setor)==1 and seleciona_setor[0]!='--- Todos ---':
 
-    elif st.session_state.base_luck == 'test_phoenix_natal' and len(seleciona_setor)==1 and seleciona_setor[0]=='Desks':
+        if (seleciona_setor[0]=='Transferista') or (st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Desks'):
 
-        tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs Hotel'].fillna(0).sum()
+            tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs_Ref_TM'].fillna(0).sum()
 
-        paxs_recebidos = int(df_vendas_setores_desejados['Paxs Hotel'].fillna(0).sum())
+            paxs_recebidos = int(df_vendas_setores_desejados['Paxs_Ref_TM'].fillna(0).sum())
 
-    else:
+        else:
 
-        tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
+            tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
 
-        paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
-
-    if (st.session_state.seleciona_setor[0]=='--- Todos ---' and len(st.session_state.seleciona_setor)==1):
-        
-        tm_setor_estip = df_metas_setor['Meta_Total'].mean()
-
-    else:
+            paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
 
         df_setor_meta = df_vendas_setores_desejados.groupby('Setor', as_index=False)['Meta'].first()
 
-        if 'Guia' in seleciona_setor and 'Transferista' in seleciona_setor:
+        if st.session_state.base_luck == 'test_phoenix_joao_pessoa' and seleciona_setor[0]=='Guia':
 
             tm_setor_estip = df_setor_meta[df_setor_meta['Setor']!='Transferista']['Meta'].sum()
 
         else:
 
             tm_setor_estip = df_setor_meta['Meta'].sum()
+
+        if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+            total_desconto = df_vendas_setores_desejados[df_vendas_setores_desejados['Servico'] != 'EXTRA']['Desconto_Global_Ajustado'].sum()
+
+        else:
+
+            total_desconto = df_vendas_setores_desejados['Desconto_Global_Ajustado'].sum()
+
+        med_desconto = gerar_media_descontos(total_desconto, soma_vendas)
+
+        meta_esperada_total = tm_setor_estip*paxs_recebidos
+
+        meta_esperada_formatada = formatar_moeda(meta_esperada_total)
+
+        perc_alcancado = f'{round((soma_vendas / meta_esperada_total) * 100, 2)}%'
+
+    elif len(seleciona_setor)>1 or (len(seleciona_setor)==1 and seleciona_setor[0]=='--- Todos ---'):
+
+        df_vendas_esperadas = df_vendas_setores_desejados.groupby('Setor', as_index=False).apply(soma_ou_media_paxs)
+
+        if 'Guia' in df_vendas_esperadas['Setor'].tolist() and st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+            df_vendas_esperadas = df_vendas_esperadas[df_vendas_esperadas['Setor']!='Transferista']
+
+        df_vendas_esperadas['Venda Esperada Individual'] = df_vendas_esperadas['Meta'] * df_vendas_esperadas['Paxs_Ref_TM']
+
+        meta_esperada_total = df_vendas_esperadas['Venda Esperada Individual'].sum()
+
+        meta_esperada_formatada = formatar_moeda(meta_esperada_total)
+
+        perc_alcancado = f'{round((soma_vendas / meta_esperada_total) * 100, 2)}%'
+
+        tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
+
+        paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
+
+        tm_setor_estip = int(meta_esperada_total / paxs_recebidos)
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -533,17 +596,7 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
     med_desconto = gerar_media_descontos(total_desconto, soma_vendas)
 
-    return soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto
-
-def gerar_meta_esperada_perc_alcancado(soma_vendas, tm_setor_estip, paxs_recebidos):
-
-    meta_esperada_total = tm_setor_estip*paxs_recebidos
-
-    meta_esperada_formatada = formatar_moeda(meta_esperada_total)
-
-    perc_alcancado = f'{round((soma_vendas / meta_esperada_total) * 100, 2)}%'
-
-    return meta_esperada_formatada, perc_alcancado
+    return soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto, meta_esperada_formatada, perc_alcancado
 
 def plotar_quadrados_html(titulo, info_numero):
     
@@ -1023,11 +1076,15 @@ if __name__ == '__main__':
 
         df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
 
-        if not '--- Todos ---' in seleciona_setor:
+        if not '--- Todos ---' in seleciona_setor and 'Guia' in seleciona_setor and not 'Transferista' in seleciona_setor and st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-            if 'Guia' in seleciona_setor and not 'Transferista' in seleciona_setor:
+            lista_setor = seleciona_setor.copy()
 
-                seleciona_setor.append('Transferista')
+            lista_setor.append('Transferista')
+
+            df_vendas = df_vendas[df_vendas['Setor'].isin(lista_setor)]
+
+        elif not '--- Todos ---' in seleciona_setor:
 
             df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
 
@@ -1061,9 +1118,8 @@ if __name__ == '__main__':
 
                     with st.container():
 
-                        soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto = gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_metas_setor)
-
-                        meta_esperada_formatada, perc_alcancado = gerar_meta_esperada_perc_alcancado(soma_vendas, tm_setor_estip, paxs_recebidos)
+                        soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto, meta_esperada_formatada, perc_alcancado = \
+                            gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_metas_setor)
 
                         plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
 
