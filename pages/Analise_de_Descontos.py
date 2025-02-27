@@ -83,8 +83,6 @@ def gerar_df_individual(df_agrupado_descontos):
 
     return df_individual
 
-st.set_page_config(layout='wide')
-
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from Vendas_Gerais import puxar_df_config, gerar_df_metas, gerar_df_vendas_final
