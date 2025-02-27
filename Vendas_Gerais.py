@@ -501,7 +501,7 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
         
     def soma_ou_media_paxs(group):
 
-        if group['Setor'].iloc[0] == 'Transferista':
+        if group['Setor'].iloc[0] == 'Transferista' or (st.session_state.base_luck == 'test_phoenix_natal' and group['Setor'].iloc[0] == 'Desks'):
 
             paxs_ref_tm = group['Paxs_Ref_TM'].sum()
 
