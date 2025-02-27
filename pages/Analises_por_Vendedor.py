@@ -533,175 +533,173 @@ def plotar_graficos_e_tabelas_meta_mes():
 
             st.dataframe(df_ranking_print, use_container_width=True, hide_index=True, height=355)
 
-if __name__ == '__main__':
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-    sys.path.append(str(Path(__file__).resolve().parent.parent))
+from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_ocupacao_hoteis, gerar_df_vendas_final, \
+    gerar_df_guias_in, gerar_df_paxs_in, gerar_df_phoenix
 
-    from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_ocupacao_hoteis, gerar_df_vendas_final, \
-        gerar_df_guias_in, gerar_df_paxs_in, gerar_df_phoenix
+if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
+                                        if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
+
+        with st.spinner('Puxando configurações, histórico vendedores, metas de vendedores e metas de setores...'):
+
+            if 'df_config' in lista_keys_fora_do_session_state:
+
+                puxar_df_config()
+
+            if 'df_historico_vendedor' in lista_keys_fora_do_session_state:
+
+                gerar_df_historico_vendedor()
+
+            if 'df_metas' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas()
+
+            if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas_vendedor()
+
+        with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
+
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
+
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+            if 'df_ranking' in lista_keys_fora_do_session_state:
+
+                gerar_df_ranking()
+
+            if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_guias_in()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
+
+elif st.session_state.base_luck == 'test_phoenix_natal':
+
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_metas_vendedor', 'df_ocupacao_hoteis', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
+                                        if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
+
+        with st.spinner('Puxando configurações, metas de vendedores e metas de setores...'):
+
+            if 'df_config' in lista_keys_fora_do_session_state:
+
+                puxar_df_config()
+
+            if 'df_metas' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas()
+
+            if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas_vendedor()
+
+            if 'df_ocupacao_hoteis' in lista_keys_fora_do_session_state:
+
+                gerar_df_ocupacao_hoteis()
+
+        with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
+
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
+
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+            if 'df_ranking' in lista_keys_fora_do_session_state:
+
+                gerar_df_ranking()
+
+            if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_guias_in()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
+
+row_titulo = st.columns(1)
+
+tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor', 'Meta Mês'], index=None)
+
+if tipo_analise:
+
+    with row_titulo[0]:
+
+        st.title(tipo_analise)
+
+        st.divider()
+
+else:
+
+    st.warning('Escolha um tipo de análise')
+
+if not 'df_geral_vendedor' in st.session_state:
+
+    df_paxs_mes = gerar_df_paxs_mes()
+
+    df_guias_in = st.session_state.df_guias_in.groupby(['Guia', 'Mes_Ano'], as_index=False)['Total_Paxs'].sum()
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-        lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
-                                            if item not in st.session_state]
-        
-        if len(lista_keys_fora_do_session_state)>0:
-
-            with st.spinner('Puxando configurações, histórico vendedores, metas de vendedores e metas de setores...'):
-
-                if 'df_config' in lista_keys_fora_do_session_state:
-
-                    puxar_df_config()
-
-                if 'df_historico_vendedor' in lista_keys_fora_do_session_state:
-
-                    gerar_df_historico_vendedor()
-
-                if 'df_metas' in lista_keys_fora_do_session_state:
-
-                    gerar_df_metas()
-
-                if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
-
-                    gerar_df_metas_vendedor()
-
-            with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
-
-                if 'df_vendas_final' in lista_keys_fora_do_session_state:
-
-                    st.session_state.df_vendas_final = gerar_df_vendas_final()
-
-                if 'df_ranking' in lista_keys_fora_do_session_state:
-
-                    gerar_df_ranking()
-
-                if 'df_guias_in' in lista_keys_fora_do_session_state:
-
-                    gerar_df_guias_in()
-
-                if 'df_paxs_in' in lista_keys_fora_do_session_state:
-
-                    gerar_df_paxs_in()
+        df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in)
 
     elif st.session_state.base_luck == 'test_phoenix_natal':
 
-        lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_metas_vendedor', 'df_ocupacao_hoteis', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
-                                            if item not in st.session_state]
-        
-        if len(lista_keys_fora_do_session_state)>0:
+        df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in, st.session_state.df_ocupacao_hoteis)
 
-            with st.spinner('Puxando configurações, metas de vendedores e metas de setores...'):
+    df_geral_vendedor_1 = concatenar_vendas_com_historico_vendedor(df_vendas)
 
-                if 'df_config' in lista_keys_fora_do_session_state:
+    df_geral_vendedor = agrupar_ajustar_colunas_df_geral_vendedor(df_geral_vendedor_1)
 
-                    puxar_df_config()
+    st.session_state.df_geral_vendedor = adicionar_performance_anual_acumulado_anual_meta_anual(df_geral_vendedor)
 
-                if 'df_metas' in lista_keys_fora_do_session_state:
+if tipo_analise=='Historico por Vendedor':
 
-                    gerar_df_metas()
+    col1, col2 = st.columns([4, 8])
+    
+    ano_selecao, setor_selecao = colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise)
 
-                if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+    if len(ano_selecao)>0 and len(setor_selecao)>0:
 
-                    gerar_df_metas_vendedor()
-
-                if 'df_ocupacao_hoteis' in lista_keys_fora_do_session_state:
-
-                    gerar_df_ocupacao_hoteis()
-
-            with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
-
-                if 'df_vendas_final' in lista_keys_fora_do_session_state:
-
-                    st.session_state.df_vendas_final = gerar_df_vendas_final()
-
-                if 'df_ranking' in lista_keys_fora_do_session_state:
-
-                    gerar_df_ranking()
-
-                if 'df_guias_in' in lista_keys_fora_do_session_state:
-
-                    gerar_df_guias_in()
-
-                if 'df_paxs_in' in lista_keys_fora_do_session_state:
-
-                    gerar_df_paxs_in()
-
-    row_titulo = st.columns(1)
-
-    tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor', 'Meta Mês'], index=None)
-
-    if tipo_analise:
-
-        with row_titulo[0]:
-
-            st.title(tipo_analise)
-
-            st.divider()
+        plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise)
 
     else:
 
-        st.warning('Escolha um tipo de análise')
+        st.warning('Precisa selecionar pelo menos um Ano e Setor')
 
-    if not 'df_geral_vendedor' in st.session_state:
+elif tipo_analise=='Acompanhamento Anual - Vendedores':
 
-        df_paxs_mes = gerar_df_paxs_mes()
+    col1, col2 = st.columns([4, 8])
 
-        df_guias_in = st.session_state.df_guias_in.groupby(['Guia', 'Mes_Ano'], as_index=False)['Total_Paxs'].sum()
+    ano_selecao, vendedor_selecao = colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise)
 
-        if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    if len(ano_selecao)>0 and len(vendedor_selecao)>0:
 
-            df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in)
+        plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise)
 
-        elif st.session_state.base_luck == 'test_phoenix_natal':
+    else:
 
-            df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in, st.session_state.df_ocupacao_hoteis)
+        st.warning('Precisa selecionar pelo menos um Ano e Vendedor')
 
-        df_geral_vendedor_1 = concatenar_vendas_com_historico_vendedor(df_vendas)
+elif tipo_analise=='Meta Mês':
 
-        df_geral_vendedor = agrupar_ajustar_colunas_df_geral_vendedor(df_geral_vendedor_1)
+    col1, col2, col3 = st.columns([4, 4, 4])
+    
+    df_vendas, df_ranking = criar_df_ranking_df_vendas_graficos()
 
-        st.session_state.df_geral_vendedor = adicionar_performance_anual_acumulado_anual_meta_anual(df_geral_vendedor)
+    ano_selecao, mes_selecao, setor_selecao = colher_ano_mes_setor_selecao(df_vendas)
 
-    if tipo_analise=='Historico por Vendedor':
+    if len(ano_selecao)>0 and len(mes_selecao)>0 and len(setor_selecao)>0:
 
-        col1, col2 = st.columns([4, 8])
-        
-        ano_selecao, setor_selecao = colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise)
+        plotar_graficos_e_tabelas_meta_mes()
 
-        if len(ano_selecao)>0 and len(setor_selecao)>0:
+    else:
 
-            plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise)
-
-        else:
-
-            st.warning('Precisa selecionar pelo menos um Ano e Setor')
-
-    elif tipo_analise=='Acompanhamento Anual - Vendedores':
-
-        col1, col2 = st.columns([4, 8])
-
-        ano_selecao, vendedor_selecao = colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise)
-
-        if len(ano_selecao)>0 and len(vendedor_selecao)>0:
-
-            plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise)
-
-        else:
-
-            st.warning('Precisa selecionar pelo menos um Ano e Vendedor')
-
-    elif tipo_analise=='Meta Mês':
-
-        col1, col2, col3 = st.columns([4, 4, 4])
-        
-        df_vendas, df_ranking = criar_df_ranking_df_vendas_graficos()
-
-        ano_selecao, mes_selecao, setor_selecao = colher_ano_mes_setor_selecao(df_vendas)
-
-        if len(ano_selecao)>0 and len(mes_selecao)>0 and len(setor_selecao)>0:
-
-            plotar_graficos_e_tabelas_meta_mes()
-
-        else:
-
-            st.warning('Precisa selecionar pelo menos um Ano, Mês e Setor')
+        st.warning('Precisa selecionar pelo menos um Ano, Mês e Setor')

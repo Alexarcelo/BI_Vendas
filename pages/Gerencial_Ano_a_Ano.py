@@ -302,110 +302,108 @@ def plotar_grafico_ticket_medio(df_filtro_receita):
 
     st.plotly_chart(fig_tm)
 
-if __name__ == '__main__':
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-    sys.path.append(str(Path(__file__).resolve().parent.parent))
+from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, gerar_df_metas, gerar_df_vendas_final, gerar_df_paxs_in, puxar_df_config
 
-    from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, gerar_df_metas, gerar_df_vendas_final, gerar_df_paxs_in, puxar_df_config
+st.title('Gerencial - Ano a Ano')
 
-    st.title('Gerencial - Ano a Ano')
+st.divider()
 
-    st.divider()
+if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
 
-        lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
-        
-        if len(lista_keys_fora_do_session_state)>0:
+        with st.spinner('Puxando configurações, histórico e metas de setor...'):
 
-            with st.spinner('Puxando configurações, histórico e metas de setor...'):
+            if 'df_config' in lista_keys_fora_do_session_state:
 
-                if 'df_config' in lista_keys_fora_do_session_state:
+                puxar_df_config()
 
-                    puxar_df_config()
+            if 'df_historico' in lista_keys_fora_do_session_state:
 
-                if 'df_historico' in lista_keys_fora_do_session_state:
+                gerar_df_historico()
 
-                    gerar_df_historico()
+            if 'df_metas' in lista_keys_fora_do_session_state:
 
-                if 'df_metas' in lista_keys_fora_do_session_state:
+                gerar_df_metas()
 
-                    gerar_df_metas()
+        with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
 
-            with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-                if 'df_vendas_final' in lista_keys_fora_do_session_state:
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
 
-                    st.session_state.df_vendas_final = gerar_df_vendas_final()
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
 
-                if 'df_paxs_in' in lista_keys_fora_do_session_state:
+                gerar_df_paxs_in()
 
-                    gerar_df_paxs_in()
+elif st.session_state.base_luck == 'test_phoenix_natal':
 
-    elif st.session_state.base_luck == 'test_phoenix_natal':
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
 
-        lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
-        
-        if len(lista_keys_fora_do_session_state)>0:
+        with st.spinner('Puxando configurações e metas de setor...'):
 
-            with st.spinner('Puxando configurações e metas de setor...'):
+            if 'df_config' in lista_keys_fora_do_session_state:
 
-                if 'df_config' in lista_keys_fora_do_session_state:
+                puxar_df_config()
 
-                    puxar_df_config()
+            if 'df_metas' in lista_keys_fora_do_session_state:
 
-                if 'df_metas' in lista_keys_fora_do_session_state:
+                gerar_df_metas()
 
-                    gerar_df_metas()
+        with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
 
-            with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-                if 'df_vendas_final' in lista_keys_fora_do_session_state:
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
 
-                    st.session_state.df_vendas_final = gerar_df_vendas_final()
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
 
-                if 'df_paxs_in' in lista_keys_fora_do_session_state:
+                gerar_df_paxs_in()
 
-                    gerar_df_paxs_in()
+df_agrupado = gerar_df_agrupado()
 
-    df_agrupado = gerar_df_agrupado()
+filtrar_ano = st.multiselect('Excluir Ano de Análise', sorted(df_agrupado['Ano'].unique().tolist()), default=None)
 
-    filtrar_ano = st.multiselect('Excluir Ano de Análise', sorted(df_agrupado['Ano'].unique().tolist()), default=None)
+if len(filtrar_ano) > 0:
 
-    if len(filtrar_ano) > 0:
+    df_agrupado = df_agrupado[~df_agrupado['Ano'].isin(filtrar_ano)]
 
-        df_agrupado = df_agrupado[~df_agrupado['Ano'].isin(filtrar_ano)]
+df_filtrado = df_agrupado[pd.notna(df_agrupado['Setor'])]
 
-    df_filtrado = df_agrupado[pd.notna(df_agrupado['Setor'])]
+setores = df_filtrado['Setor'].unique()
 
-    setores = df_filtrado['Setor'].unique()
+plotar_graficos_linha_por_setor(setores, df_agrupado)
 
-    plotar_graficos_linha_por_setor(setores, df_agrupado)
+df_vendas_mensal = df_filtrado.groupby(['Mes', 'Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
 
-    df_vendas_mensal = df_filtrado.groupby(['Mes', 'Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
+plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal)
 
-    plotar_graficos_barra_valor_total_por_setor(df_vendas_mensal)
+df_vendas_anual = df_filtrado.groupby(['Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
 
-    df_vendas_anual = df_filtrado.groupby(['Ano', 'Setor'], as_index=False)['Valor_Total'].sum()
+df_vendas_anual = df_vendas_anual.sort_values(by=['Setor', 'Ano'])
 
-    df_vendas_anual = df_vendas_anual.sort_values(by=['Setor', 'Ano'])
+df_vendas_anual['Variacao_Anual'] = df_vendas_anual.groupby('Setor')['Valor_Total'].pct_change() * 100
 
-    df_vendas_anual['Variacao_Anual'] = df_vendas_anual.groupby('Setor')['Valor_Total'].pct_change() * 100
+plotar_grafico_barra_valor_total_por_setor_ano_resumo(df_vendas_anual)
 
-    plotar_grafico_barra_valor_total_por_setor_ano_resumo(df_vendas_anual)
+df_agrupado['Paxs'] = df_agrupado['Paxs'].astype(float)
 
-    df_agrupado['Paxs'] = df_agrupado['Paxs'].astype(float)
+df_filtro_paxs = df_agrupado.loc[df_agrupado.groupby('Mes_Ano')['Paxs'].idxmax()]
 
-    df_filtro_paxs = df_agrupado.loc[df_agrupado.groupby('Mes_Ano')['Paxs'].idxmax()]
+plotar_grafico_fluxo_paxs(df_filtro_paxs)
 
-    plotar_grafico_fluxo_paxs(df_filtro_paxs)
+df_agrupado['Valor_Total'] = df_agrupado['Valor_Total'].astype(float)
 
-    df_agrupado['Valor_Total'] = df_agrupado['Valor_Total'].astype(float)
+df_filtro_receita = df_agrupado.groupby('Mes_Ano').agg({'Valor_Total': 'sum', 'Paxs' : 'mean'}).reset_index()
 
-    df_filtro_receita = df_agrupado.groupby('Mes_Ano').agg({'Valor_Total': 'sum', 'Paxs' : 'mean'}).reset_index()
+df_filtro_receita['Ticket_Medio'] = df_filtro_receita['Valor_Total'] / df_filtro_receita['Paxs']
 
-    df_filtro_receita['Ticket_Medio'] = df_filtro_receita['Valor_Total'] / df_filtro_receita['Paxs']
+df_filtro_receita['Variacao_Percentual'] = df_filtro_receita['Valor_Total'].pct_change() * 100
 
-    df_filtro_receita['Variacao_Percentual'] = df_filtro_receita['Valor_Total'].pct_change() * 100
-
-    plotar_grafico_ticket_medio(df_filtro_receita)
+plotar_grafico_ticket_medio(df_filtro_receita)
