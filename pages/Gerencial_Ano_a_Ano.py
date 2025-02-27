@@ -10,7 +10,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 import sys
 from pathlib import Path
-   
+
+def gerar_df_historico():
+
+    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Historico', 'df_historico')
+
+    tratar_colunas_numero_df(st.session_state.df_historico, st.session_state.lista_colunas_numero_df_historico)
+    
+    st.session_state.df_historico['Mes_Ano'] = pd.to_datetime(st.session_state.df_historico['Ano'].astype(str) + '-' + st.session_state.df_historico['Mes'].astype(str) + '-01').dt.to_period('M')
+
 def gerar_df_agrupado():
 
     df_vendas = st.session_state.df_vendas_final.copy()
@@ -298,7 +306,7 @@ st.set_page_config(layout='wide')
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from Vendas_Gerais import puxar_df_config, gerar_df_metas, gerar_df_vendas_final, gerar_df_paxs_in, gerar_df_historico
+from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, gerar_df_metas, gerar_df_vendas_final, gerar_df_paxs_in, puxar_df_config
 
 st.title('Gerencial - Ano a Ano')
 

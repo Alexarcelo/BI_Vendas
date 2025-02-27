@@ -84,14 +84,6 @@ def puxar_df_config():
 
         st.session_state.servicos_terceiros = st.session_state.df_config[st.session_state.df_config['Configuração']=='Serviços de Terceiros']['Parâmetro'].tolist()
 
-def gerar_df_historico():
-
-    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'BD - Historico', 'df_historico')
-
-    tratar_colunas_numero_df(st.session_state.df_historico, st.session_state.lista_colunas_numero_df_historico)
-    
-    st.session_state.df_historico['Mes_Ano'] = pd.to_datetime(st.session_state.df_historico['Ano'].astype(str) + '-' + st.session_state.df_historico['Mes'].astype(str) + '-01').dt.to_period('M')
-
 def gerar_df_phoenix(base_luck, request_select):
     
     config = {
