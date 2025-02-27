@@ -316,7 +316,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
     
     if len(lista_keys_fora_do_session_state)>0:
 
-        with st.spinner('Puxando configurações, histórico e metas de setor...'):
+        with st.spinner('Puxando dados do Google Drive...'):
 
             if 'df_config' in lista_keys_fora_do_session_state:
 
@@ -330,7 +330,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
                 gerar_df_metas()
 
-        with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
+        with st.spinner('Puxando dados do Phoenix...'):
 
             if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
