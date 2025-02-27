@@ -544,6 +544,10 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
             tm_setor_estip = df_setor_meta[df_setor_meta['Setor']!='Transferista']['Meta'].sum()
 
+        elif st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Vendas Online':
+
+            tm_setor_estip = df_setor_meta['Meta'].sum() / paxs_recebidos
+
         else:
 
             tm_setor_estip = df_setor_meta['Meta'].sum()
