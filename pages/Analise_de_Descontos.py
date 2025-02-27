@@ -98,7 +98,7 @@ lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', '
 
 if len(lista_keys_fora_do_session_state)>0:
 
-    with st.spinner('Puxando configurações...'):
+    with st.spinner('Puxando dados do Google Drive...'):
 
         if 'df_config' in lista_keys_fora_do_session_state:
 
@@ -108,7 +108,7 @@ if len(lista_keys_fora_do_session_state)>0:
 
             gerar_df_metas()
 
-    with st.spinner('Puxando vendas do Phoenix...'):
+    with st.spinner('Puxando dados do Phoenix...'):
 
         if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
