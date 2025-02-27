@@ -18,7 +18,7 @@ def gerar_df_descontos():
 
     df_descontos['Ano'] = df_descontos['Mes_Ano'].dt.year
 
-    df_descontos = df_descontos[df_descontos['Setor'].isin(st.session_state.setores_desejados_gerencial)]
+    df_descontos = df_descontos[pd.notna(df_descontos['Setor'])]
 
     return df_descontos
 
