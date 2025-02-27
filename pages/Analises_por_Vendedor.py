@@ -171,8 +171,6 @@ def agrupar_ajustar_colunas_df_geral_vendedor(df_geral_vendedor_1):
 
 def adicionar_performance_anual_acumulado_anual_meta_anual(df_geral_vendedor):
 
-    df_geral_vendedor
-
     performance_anual = df_geral_vendedor.groupby(['Vendedor', 'Ano']).apply(lambda x: x['Venda_Filtrada'].sum() / x['Venda_Esperada'].sum() if x['Venda_Esperada'].sum() != 0 else 0)\
         .reset_index(name='Performance_Anual')
 
@@ -542,51 +540,89 @@ from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_
 
 if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-    if any(key not in st.session_state for key in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in']):
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_metas_vendedor', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
+                                        if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
 
         with st.spinner('Puxando configurações, histórico vendedores, metas de vendedores e metas de setores...'):
 
-            puxar_df_config()
+            if 'df_config' in lista_keys_fora_do_session_state:
 
-            gerar_df_historico_vendedor()
+                puxar_df_config()
 
-            gerar_df_metas()
+            if 'df_historico_vendedor' in lista_keys_fora_do_session_state:
 
-            gerar_df_metas_vendedor()
+                gerar_df_historico_vendedor()
+
+            if 'df_metas' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas()
+
+            if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas_vendedor()
 
         with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
 
-            st.session_state.df_vendas_final = gerar_df_vendas_final()
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-            gerar_df_ranking()
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
 
-            gerar_df_guias_in()
+            if 'df_ranking' in lista_keys_fora_do_session_state:
 
-            gerar_df_paxs_in()
+                gerar_df_ranking()
+
+            if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_guias_in()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
 
 elif st.session_state.base_luck == 'test_phoenix_natal':
 
-    if any(key not in st.session_state for key in ['df_config', 'df_metas', 'df_metas_vendedor', 'df_ocupacao_hoteis', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in']):
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_metas_vendedor', 'df_ocupacao_hoteis', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
+                                        if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
 
         with st.spinner('Puxando configurações, metas de vendedores e metas de setores...'):
 
-            puxar_df_config()
+            if 'df_config' in lista_keys_fora_do_session_state:
 
-            gerar_df_metas()
+                puxar_df_config()
 
-            gerar_df_metas_vendedor()
+            if 'df_metas' in lista_keys_fora_do_session_state:
 
-            gerar_df_ocupacao_hoteis()
+                gerar_df_metas()
+
+            if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas_vendedor()
+
+            if 'df_ocupacao_hoteis' in lista_keys_fora_do_session_state:
+
+                gerar_df_ocupacao_hoteis()
 
         with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
 
-            st.session_state.df_vendas_final = gerar_df_vendas_final()
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-            gerar_df_ranking()
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
 
-            gerar_df_guias_in()
+            if 'df_ranking' in lista_keys_fora_do_session_state:
 
-            gerar_df_paxs_in()
+                gerar_df_ranking()
+
+            if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_guias_in()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
 
 row_titulo = st.columns(1)
 
