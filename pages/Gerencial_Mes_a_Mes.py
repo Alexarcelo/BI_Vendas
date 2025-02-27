@@ -304,8 +304,6 @@ def plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores
 
                         st.plotly_chart(fig_3, use_container_width=True)
 
-st.set_page_config(layout='wide')
-
 sys.path.append(str(Path(__file__).resolve().parent))
 
 from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, gerar_df_phoenix, puxar_df_config, gerar_df_metas, gerar_df_vendas_final, gerar_df_paxs_in, ajustar_desconto_global
