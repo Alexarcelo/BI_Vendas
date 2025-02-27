@@ -265,7 +265,7 @@ def plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores
             
             df_ranking_combos = ranking_filtrado_combo_setores[(ranking_filtrado_combo_setores['Mes_Ano'].dt.strftime('%B %Y') == mes_) & (ranking_filtrado_combo_setores['Setor'] == setor_)]
 
-            df_ranking_combos['Combo'] = df_ranking_combos['Servico'].apply(lambda x: 'MIX LUCK' if x.upper() in st.session_state.combo_luck else 'MIX OUTROS')
+            df_ranking_combos['Combo'] = df_ranking_combos['Servico'].apply(lambda x: 'MIX LUCK' if x in st.session_state.combo_luck else 'MIX OUTROS')
 
             df_combos_contador = df_ranking_combos.groupby('Combo', as_index=False)['Total Paxs'].sum()
             
