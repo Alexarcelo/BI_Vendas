@@ -387,7 +387,7 @@ def ajustar_desconto_global(df_vendas):
         
     else:
 
-        df_vendas['Desconto_Global_Ajustado'] = 0
+        df_vendas['Desconto_Global_Ajustado'] = df_vendas['Desconto_Global_Por_Servico']
     
     return df_vendas
 
