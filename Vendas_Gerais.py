@@ -188,13 +188,13 @@ def gerar_df_vendas_final():
 
     gerar_df_vendas_phoenix()
 
+    # Puxando as vendas lançadas manualmente na planilha
+
+    gerar_df_vendas_manuais()
+
+    df_vendas = pd.concat([st.session_state.df_vendas, st.session_state.df_vendas_manuais], ignore_index=True)
+
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        # Puxando as vendas lançadas manualmente na planilha
-
-        gerar_df_vendas_manuais()
-
-        df_vendas = pd.concat([st.session_state.df_vendas, st.session_state.df_vendas_manuais], ignore_index=True)
 
         # Ajustando nomes de letícia e soraya pra identificar o setor correto
 
@@ -950,6 +950,10 @@ if __name__ == '__main__':
 
             st.session_state.lista_colunas_numero_df_custos_com_adicionais = ['Valor Adicional Adt', 'Valor Adicional Chd']
 
+            st.session_state.lista_colunas_numero_df_vendas_manuais = ['Valor_Venda', 'Desconto_Global_Por_Servico', 'Total_ADT', 'Total_CHD']
+            
+            st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
+
             st.session_state.meses_disponiveis = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 
                                                 'Dezembro': 12}
             
@@ -998,50 +1002,84 @@ if __name__ == '__main__':
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-        if any(key not in st.session_state for key in ['df_metas_vendedor', 'df_metas', 'df_config', 'df_vendas_final', 'df_guias_in', 'df_paxs_in']):
+        lista_keys_fora_do_session_state = [item for item in ['df_metas_vendedor', 'df_metas', 'df_config', 'df_vendas_final', 'df_guias_in', 'df_paxs_in'] if item not in st.session_state]
+
+        if len(lista_keys_fora_do_session_state)>0:
 
             with st.spinner('Puxando metas de vendedores, metas de setores e configurações...'):
 
-                gerar_df_metas_vendedor()
+                if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
 
-                gerar_df_metas()
+                    gerar_df_metas_vendedor()
 
-                puxar_df_config()
+                if 'df_metas' in lista_keys_fora_do_session_state:
+
+                    gerar_df_metas()
+
+                if 'df_config' in lista_keys_fora_do_session_state:
+
+                    puxar_df_config()
 
             with st.spinner('Puxando vendas, guias IN e paxs IN do Phoenix...'):
 
-                st.session_state.df_vendas_final = gerar_df_vendas_final()
+                if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-                gerar_df_guias_in()
+                    st.session_state.df_vendas_final = gerar_df_vendas_final()
 
-                gerar_df_paxs_in()
+                if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                    gerar_df_guias_in()
+
+                if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                    gerar_df_paxs_in()
 
     elif st.session_state.base_luck == 'test_phoenix_natal':
 
-        if any(key not in st.session_state for key in ['df_metas_vendedor', 'df_metas', 'df_ocupacao_hoteis', 'df_custos_com_adicionais', 'df_juntar_servicos', 'df_config', 'df_vendas_final', 
-                                                    'df_guias_in', 'df_paxs_in']):
+        lista_keys_fora_do_session_state = [item for item in ['df_metas_vendedor', 'df_metas', 'df_ocupacao_hoteis', 'df_custos_com_adicionais', 'df_juntar_servicos', 'df_config', 'df_vendas_final',
+                                                              'df_guias_in', 'df_paxs_in'] if item not in st.session_state]
+        
+        if len(lista_keys_fora_do_session_state)>0:
 
-            with st.spinner('Puxando metas de vendedores, metas de setores, ocupação de hoteis, custos com adicionais, junção de serviços e configurações...'):
+            with st.spinner('Puxando dados do Google Drive...'):
 
-                gerar_df_metas_vendedor()
+                if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
 
-                gerar_df_metas()
+                    gerar_df_metas_vendedor()
 
-                gerar_df_ocupacao_hoteis()
+                if 'df_metas' in lista_keys_fora_do_session_state:
 
-                gerar_df_custos_com_adicionais()
+                    gerar_df_metas()
 
-                puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'Juntar Serviços', 'df_juntar_servicos')
+                if 'df_ocupacao_hoteis' in lista_keys_fora_do_session_state:
 
-                puxar_df_config()
+                    gerar_df_ocupacao_hoteis()
 
-            with st.spinner('Puxando vendas, guias IN e paxs IN do Phoenix...'):
+                if 'df_custos_com_adicionais' in lista_keys_fora_do_session_state:
 
-                st.session_state.df_vendas_final = gerar_df_vendas_final()
+                    gerar_df_custos_com_adicionais()
 
-                gerar_df_guias_in()
+                if 'df_juntar_servicos' in lista_keys_fora_do_session_state:
 
-                gerar_df_paxs_in()
+                    puxar_aba_simples(st.session_state.id_gsheet_metas_vendas, 'Juntar Serviços', 'df_juntar_servicos')
+
+                if 'df_config' in lista_keys_fora_do_session_state:
+
+                    puxar_df_config()
+
+            with st.spinner('Puxando dados do Phoenix...'):
+
+                if 'df_vendas_final' in lista_keys_fora_do_session_state:
+
+                    st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+                if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                    gerar_df_guias_in()
+
+                if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                    gerar_df_paxs_in()
 
     lista_setor = gerar_lista_setor()
 
