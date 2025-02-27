@@ -471,7 +471,7 @@ def formatar_moeda(valor):
 
     return format_currency(valor, 'BRL', locale='pt_BR')
 
-def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_metas_setor):
+def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
     def gerar_media_descontos(total_desconto, soma_vendas):
 
@@ -560,6 +560,11 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
 
             total_desconto = df_vendas_setores_desejados['Desconto_Global_Ajustado'].sum()
 
+        if st.session_state.base_luck == 'test_phoenix_natal':
+
+            df_vendas_agrupado.loc[df_vendas_agrupado['Setor']=='Vendas Online', 'Meta'] = df_vendas_agrupado.loc[df_vendas_agrupado['Setor']=='Vendas Online', 'Meta'] / \
+                df_vendas_agrupado.loc[df_vendas_agrupado['Setor']=='Vendas Online', 'Total_Paxs']
+
         med_desconto = gerar_media_descontos(total_desconto, soma_vendas)
 
         meta_esperada_total = tm_setor_estip*paxs_recebidos
@@ -571,6 +576,14 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_m
     elif len(seleciona_setor)>1 or (len(seleciona_setor)==1 and seleciona_setor[0]=='--- Todos ---'):
 
         df_vendas_esperadas = df_vendas_setores_desejados.groupby('Setor', as_index=False).apply(soma_ou_media_paxs)
+
+        if st.session_state.base_luck == 'test_phoenix_natal':
+
+            df_vendas_esperadas.loc[df_vendas_esperadas['Setor']=='Vendas Online', 'Meta'] = df_vendas_esperadas.loc[df_vendas_esperadas['Setor']=='Vendas Online', 'Meta'] / \
+                df_vendas_esperadas.loc[df_vendas_esperadas['Setor']=='Vendas Online', 'Paxs_Ref_TM']
+
+            df_vendas_agrupado.loc[df_vendas_agrupado['Setor']=='Vendas Online', 'Meta'] = df_vendas_agrupado.loc[df_vendas_agrupado['Setor']=='Vendas Online', 'Meta'] / \
+                df_vendas_agrupado.loc[df_vendas_agrupado['Setor']=='Vendas Online', 'Total_Paxs']
 
         if 'Guia' in df_vendas_esperadas['Setor'].tolist() and st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -929,7 +942,7 @@ if __name__ == '__main__':
 
             st.session_state.lista_colunas_numero_df_metas_vendedor = ['Ano', 'Mes', 'Meta_Mes']
             
-            st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas', 'Meta_Total']
+            st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Guia', 'Vendas Online', 'Desks', 'Eventos', 'Hotel Vendas', 'Transferistas']
 
             st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
 
@@ -955,7 +968,7 @@ if __name__ == '__main__':
             
             st.session_state.lista_colunas_numero_df_metas_vendedor = ['Ano', 'Mes', 'Meta_Mes']
             
-            st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Transferista', 'Guia', 'Desks', 'Hotel Vendas', 'Grupos', 'Vendas Online', 'Paxs_Desc', 'Meta_Total']
+            st.session_state.lista_colunas_numero_df_metas = ['Ano', 'Mes', 'Transferista', 'Guia', 'Desks', 'Hotel Vendas', 'Grupos', 'Vendas Online', 'Paxs_Desc']
             
             st.session_state.lista_colunas_numero_df_historico = ['Ano', 'Mes', 'Valor_Venda', 'Paxs ADT', 'Paxs CHD']
             
@@ -1115,7 +1128,7 @@ if __name__ == '__main__':
                     with st.container():
 
                         soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto, meta_esperada_formatada, perc_alcancado = \
-                            gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado, df_metas_setor)
+                            gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado)
 
                         plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
 
