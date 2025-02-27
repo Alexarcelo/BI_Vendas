@@ -95,17 +95,26 @@ st.write(f'_Total de Vendas Considerando apenas as Vendas Realizadas - Não cons
 
 st.divider()
 
-if any(key not in st.session_state for key in ['df_config', 'df_metas', 'df_vendas_final']):
+lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final'] 
+                                    if item not in st.session_state]
+
+if len(lista_keys_fora_do_session_state)>0:
 
     with st.spinner('Puxando configurações...'):
 
-        puxar_df_config()
+        if 'df_config' in lista_keys_fora_do_session_state:
 
-        gerar_df_metas()
+            puxar_df_config()
+
+        if 'df_metas' in lista_keys_fora_do_session_state:
+
+            gerar_df_metas()
 
     with st.spinner('Puxando vendas do Phoenix...'):
 
-        st.session_state.df_vendas_final = gerar_df_vendas_final()
+        if 'df_vendas_final' in lista_keys_fora_do_session_state:
+
+            st.session_state.df_vendas_final = gerar_df_vendas_final()
 
 df_descontos = gerar_df_descontos()
 
