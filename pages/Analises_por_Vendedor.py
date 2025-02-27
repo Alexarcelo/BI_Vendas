@@ -430,7 +430,9 @@ def plotar_graficos_e_tabelas_meta_mes():
 
         df_vendedor = df[df['Vendedor'] == vendedor]
 
-        df_anual = df_vendedor.groupby('Mes_Nome').agg({'Venda_Filtrada': 'mean', 'Venda_Esperada': 'mean', 'Performance_Mes': 'mean'}).reset_index()
+        df_anual = df_vendedor.groupby(['Mes_Nome', 'Mes_Ano']).agg({'Venda_Filtrada': 'mean', 'Venda_Esperada': 'mean', 'Performance_Mes': 'mean'}).reset_index()
+        
+        df_anual = df_anual.sort_values(by='Mes_Ano')
         
         fig = go.Figure()
         fig.add_trace(go.Bar(
