@@ -314,37 +314,59 @@ st.divider()
 
 if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
-    if any(key not in st.session_state for key in ['df_config', 'df_historico', 'df_metas', 'df_vendas_final', 'df_paxs_in']):
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
 
         with st.spinner('Puxando configurações, histórico e metas de setor...'):
 
-            puxar_df_config()
+            if 'df_config' in lista_keys_fora_do_session_state:
 
-            gerar_df_historico()
+                puxar_df_config()
 
-            gerar_df_metas()
+            if 'df_historico' in lista_keys_fora_do_session_state:
+
+                gerar_df_historico()
+
+            if 'df_metas' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas()
 
         with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
 
-            st.session_state.df_vendas_final = gerar_df_vendas_final()
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-            gerar_df_paxs_in()
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
 
 elif st.session_state.base_luck == 'test_phoenix_natal':
 
-    if any(key not in st.session_state for key in ['df_config', 'df_metas', 'df_vendas_final', 'df_paxs_in']):
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
 
         with st.spinner('Puxando configurações e metas de setor...'):
 
-            puxar_df_config()
+            if 'df_config' in lista_keys_fora_do_session_state:
 
-            gerar_df_metas()
+                puxar_df_config()
+
+            if 'df_metas' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas()
 
         with st.spinner('Puxando vendas e paxs IN do Phoenix...'):
 
-            st.session_state.df_vendas_final = gerar_df_vendas_final()
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
 
-            gerar_df_paxs_in()    
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
 
 df_agrupado = gerar_df_agrupado()
 
