@@ -515,7 +515,7 @@ st.set_page_config(layout='wide')
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_ocupacao_hoteis, gerar_df_phoenix, gerar_df_vendas_final, \
+from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_ocupacao_hoteis, gerar_df_vendas_final, \
     gerar_df_guias_in, gerar_df_paxs_in, gerar_df_ranking
 
 if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
