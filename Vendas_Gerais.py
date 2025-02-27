@@ -80,6 +80,8 @@ def puxar_df_config():
 
     st.session_state.passeios_incluidos = st.session_state.df_config[st.session_state.df_config['Configuração']=='Passeios Gráfico Pizza']['Parâmetro'].tolist()
 
+    st.session_state.combo_luck = st.session_state.df_config[st.session_state.df_config['Configuração']=='Passeios Combo Luck']['Parâmetro'].tolist()
+
     if st.session_state.base_luck == 'test_phoenix_natal':
 
         st.session_state.servicos_terceiros = st.session_state.df_config[st.session_state.df_config['Configuração']=='Serviços de Terceiros']['Parâmetro'].tolist()
@@ -991,10 +993,6 @@ if __name__ == '__main__':
             
             st.session_state.meses_ingles_portugues = {'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março', 'April': 'Abril', 'May': 'Maio', 'June': 'Junho', 'July': 'Julho', 
                                                     'August': 'Agosto', 'September': 'Setembro', 'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'}
-            
-            st.session_state.combo_luck = ['CATAMARÃ DO FORRÓ', 'CITY TOUR', 'EMBARCAÇAO - CATAMARÃ DO FORRÓ ',  'EMBARCAÇÃO - ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PASSEIO PELO RIO PARAÍBA', 
-                                            'ILHA DE AREIA VERMELHA', 'EMBARCAÇÃO - PISCINAS DO EXTREMO ORIENTAL', 'ENTARDECER NA PRAIA DO JACARÉ ', 'LITORAL NORTE COM ENTARDECER NA PRAIA DO JACARÉ', 
-                                            'PISCINAS DO EXTREMO ORIENTAL', 'PRAIAS DA COSTA DO CONDE']
 
     st.title('Vendas Gerais por Setor')
 
