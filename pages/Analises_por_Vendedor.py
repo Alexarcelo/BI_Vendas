@@ -43,6 +43,28 @@ def gerar_df_paxs_mes():
 
     return df_paxs_mes
 
+def gerar_df_ranking():
+
+    request_select = '''SELECT * FROM vw_ranking_bi_vendas'''
+    
+    st.session_state.df_ranking = gerar_df_phoenix(st.session_state.base_luck, request_select)
+
+    st.session_state.df_ranking['Data_Execucao'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.date
+
+    st.session_state.df_ranking['Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.year
+    
+    st.session_state.df_ranking['Mes'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.month
+    
+    st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.to_period('M')
+
+    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+        st.session_state.df_ranking['Setor'] = st.session_state.df_ranking['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 
+                                                                                                                        'BASE AEROPORTO': 'LOGISTICA', 'COORD. ESCALA': 'LOGISTICA', 
+                                                                                                                        'KUARA/MANSEAR': 'LOGISTICA'})
+    
+    st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total_ADT'] + st.session_state.df_ranking['Total_CHD'] / 2
+
 def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
     def gerar_df_vendas_agrupado():
@@ -516,7 +538,7 @@ st.set_page_config(layout='wide')
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, puxar_df_config, gerar_df_metas, gerar_df_metas_vendedor, gerar_df_ocupacao_hoteis, gerar_df_vendas_final, \
-    gerar_df_guias_in, gerar_df_paxs_in, gerar_df_ranking
+    gerar_df_guias_in, gerar_df_paxs_in, gerar_df_phoenix
 
 if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 

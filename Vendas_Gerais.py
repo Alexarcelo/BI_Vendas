@@ -275,28 +275,6 @@ def gerar_df_paxs_in():
         
         st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'].fillna(0) + st.session_state.df_paxs_in['Total_CHD'].fillna(0)
 
-def gerar_df_ranking():
-
-    request_select = '''SELECT * FROM vw_ranking_bi_vendas'''
-    
-    st.session_state.df_ranking = gerar_df_phoenix(st.session_state.base_luck, request_select)
-
-    st.session_state.df_ranking['Data_Execucao'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.date
-
-    st.session_state.df_ranking['Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.year
-    
-    st.session_state.df_ranking['Mes'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.month
-    
-    st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.to_period('M')
-
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        st.session_state.df_ranking['Setor'] = st.session_state.df_ranking['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 
-                                                                                                                        'BASE AEROPORTO': 'LOGISTICA', 'COORD. ESCALA': 'LOGISTICA', 
-                                                                                                                        'KUARA/MANSEAR': 'LOGISTICA'})
-    
-    st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total_ADT'] + st.session_state.df_ranking['Total_CHD'] / 2
-
 def gerar_lista_setor():
 
     lista_setor = sorted(st.session_state.df_vendas_final['Setor'].str.strip().dropna().unique().tolist())
