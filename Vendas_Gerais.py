@@ -1218,7 +1218,7 @@ if __name__ == '__main__':
 
         df_todos_vendedores_filtrado = gerar_df_todos_vendedores_filtrado(df_cont_passeio, st.session_state.passeios_incluidos)
 
-        if st.session_state.base_luck == 'test_phoenix_natal' and len(filtrar_servicos_terceiros)==0:
+        if st.session_state.base_luck == 'test_phoenix_natal':
 
             df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Serviços Terceiros'])
 
