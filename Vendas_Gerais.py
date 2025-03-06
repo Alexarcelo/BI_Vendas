@@ -166,13 +166,7 @@ def gerar_df_vendas_final():
 
         df_vendas['Mes'] = pd.to_datetime(df_vendas['Data_Venda']).dt.month
 
-        if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-            df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0) / 2
-
-        elif st.session_state.base_luck == 'test_phoenix_natal':
-
-            df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0)
+        df_vendas['Total Paxs'] = df_vendas['Total_ADT'].fillna(0) + df_vendas['Total_CHD'].fillna(0) / 2
 
         return df_vendas
     
@@ -234,13 +228,7 @@ def gerar_df_guias_in():
     
     st.session_state.df_guias_in = gerar_df_phoenix(st.session_state.base_luck, request_select)
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + (st.session_state.df_guias_in['Total_CHD'].fillna(0) / 2)
-
-    elif st.session_state.base_luck == 'test_phoenix_natal':
-
-        st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + st.session_state.df_guias_in['Total_CHD'].fillna(0)
+    st.session_state.df_guias_in['Total_Paxs'] = st.session_state.df_guias_in['Total_ADT'].fillna(0) + (st.session_state.df_guias_in['Total_CHD'].fillna(0) / 2)
 
     st.session_state.df_guias_in['Data da Escala'] = pd.to_datetime(st.session_state.df_guias_in['Data da Escala']).dt.date
 
@@ -267,15 +255,11 @@ def gerar_df_paxs_in():
     
     st.session_state.df_paxs_in['Mes_Ano'] = pd.to_datetime(st.session_state.df_paxs_in['Data_Execucao']).dt.to_period('M')
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'].fillna(0) + (st.session_state.df_paxs_in['Total_CHD'].fillna(0) / 2)
 
-        st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'].fillna(0) + (st.session_state.df_paxs_in['Total_CHD'].fillna(0) / 2)
+    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':  
 
         st.session_state.df_paxs_in = pd.merge(st.session_state.df_paxs_in, st.session_state.df_metas[['Mes_Ano', 'Paxs_Desc']], on='Mes_Ano', how='left')
-
-    elif st.session_state.base_luck == 'test_phoenix_natal':
-        
-        st.session_state.df_paxs_in['Total_Paxs'] = st.session_state.df_paxs_in['Total_ADT'].fillna(0) + st.session_state.df_paxs_in['Total_CHD'].fillna(0)
 
 def gerar_lista_setor():
 
@@ -452,7 +436,7 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
         df_vendas_agrupado = df_vendas_agrupado.merge(df_ocupacao_hoteis, on='Vendedor', how='left')
 
         df_vendas_agrupado['Ticket_Medio'] = np.where(
-            df_vendas_agrupado['Setor'].str.upper().isin(['Guia', 'Transferista']), 
+            df_vendas_agrupado['Setor'].isin(['Guia', 'Transferista']), 
             df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Paxs_IN'],
             np.where(
                 pd.notna(df_vendas_agrupado['Paxs Hotel']),
@@ -489,7 +473,8 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
     def escolher_paxs_ref(row):
 
-        if row['Setor']=='Transferista':
+        if row['Setor']=='Transferista' or \
+            (st.session_state.base_luck == 'test_phoenix_natal' and row['Setor']=='Guia'):
 
             return row['Paxs_IN']
         
@@ -503,7 +488,8 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
         
     def soma_ou_media_paxs(group):
 
-        if group['Setor'].iloc[0] == 'Transferista' or (st.session_state.base_luck == 'test_phoenix_natal' and group['Setor'].iloc[0] == 'Desks'):
+        if group['Setor'].iloc[0] == 'Transferista' or \
+            (st.session_state.base_luck == 'test_phoenix_natal' and group['Setor'].iloc[0] in ['Desks', 'Guia']):
 
             paxs_ref_tm = group['Paxs_Ref_TM'].sum()
 
@@ -528,7 +514,7 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
     if len(seleciona_setor)==1 and seleciona_setor[0]!='--- Todos ---':
 
-        if (seleciona_setor[0]=='Transferista') or (st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Desks'):
+        if (seleciona_setor[0]=='Transferista') or (st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0] in ['Desks', 'Guia']):
 
             tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs_Ref_TM'].fillna(0).sum()
 
