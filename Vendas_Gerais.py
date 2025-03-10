@@ -234,8 +234,6 @@ def gerar_df_vendas_final():
 
     else:
 
-        df_vendas = st.session_state.df_vendas.copy()
-
         # Ajustando formato de Data_Venda, criando coluna Mes_Ano e criando coluna Total Paxs
 
         df_vendas = ajustar_colunas_data_venda_mes_ano_total_paxs(df_vendas)
@@ -387,6 +385,10 @@ def filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona
 def gerar_df_hotel(df_vendas):
 
     df_hotel = df_vendas.copy()
+
+    df_hotel['Estabelecimento_Origem'] = df_hotel['Estabelecimento_Origem'].fillna('')
+
+    df_hotel['Estabelecimento_Destino'] = df_hotel['Estabelecimento_Destino'].fillna('')
 
     df_hotel.rename(columns={'Desconto_Global_Por_Servico': 'Desconto Reserva x Serviços', 'Valor_Venda': 'Vendas'}, inplace=True)
 
@@ -839,15 +841,23 @@ def gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df
     
     return df_estilizado
 
-def gerar_grafico_todos_setores(df_setor_agrupado):
+def gerar_grafico_todos_setores(df_setor_agrupado, titulo=None):
+
+    if not titulo is None:
+
+        nome_titulo = titulo
+
+    else:
+
+        nome_titulo = 'Valor Total por Setor'
 
     fig = px.bar(
         x=df_setor_agrupado['Setor'],  
         y=df_setor_agrupado['Venda_Filtrada'], 
         color=df_setor_agrupado['Setor'], 
-        title='Valor Total por Setor', 
+        title=nome_titulo, 
         labels={'Venda_Filtrada': 'Valor Total', 'Setor': 'Setores'}, 
-        text=df_setor_agrupado['Venda_Filtrada'].apply(formatar_moeda)
+        text=df_setor_agrupado['Venda_Filtrada'].apply(formatar_moeda),
         )
     
     fig.update_traces(
@@ -858,6 +868,40 @@ def gerar_grafico_todos_setores(df_setor_agrupado):
     fig.update_layout(
         yaxis_title='Valor Total',
         xaxis_title='Setores'
+        )
+
+    return fig
+
+def gerar_grafico_pizza_todos_setores(df_vendas_agrupado, titulo=None):
+
+    if not titulo is None:
+
+        nome_titulo = titulo
+
+    else:
+
+        nome_titulo = 'Participação % por Setor'
+
+    fig = px.pie(
+        df_vendas_agrupado, 
+        names='Setor', 
+        values='Venda_Filtrada', 
+        title=nome_titulo,
+        category_orders={'Setor': sorted(df_vendas_agrupado['Setor'].unique())}
+        )
+
+    fig.update_traces(
+        texttemplate='%{percent}'
+        )
+
+    fig.update_layout(
+        showlegend=True, 
+        margin=dict(
+            t=50, 
+            b=50, 
+            l=50, 
+            r=50
+            )
         )
 
     return fig
@@ -933,8 +977,16 @@ def gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, passeios_
         category_orders={'Servico': passeios_incluidos}
         )
 
+    if st.session_state.base_luck == 'test_phoenix_salvador':
+
+        texto_tag = '%{percent} - %{value:d} Paxs'
+
+    else:
+
+        texto_tag = '%{percent}'
+
     fig.update_traces(
-        texttemplate='%{percent}', 
+        texttemplate=texto_tag, 
         hovertemplate='%{label}: %{value} Paxs'
         )
 
@@ -1089,6 +1141,18 @@ def plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2=None):
     else:
 
         st.plotly_chart(fig)
+
+def gerar_df_vendas_vo_cv(df_vendas):
+
+    df_vendas_vo_cv = df_vendas.copy()
+
+    df_vendas_vo_cv['Venda_Filtrada'] = df_vendas_vo_cv['Valor_Venda'].fillna(0) - df_vendas_vo_cv['Valor_Reembolso'].fillna(0)
+
+    df_vendas_vo_cv = df_vendas_vo_cv[df_vendas_vo_cv['Setor']=='Vendas Online'].groupby('Canal_de_Vendas')['Venda_Filtrada'].sum().reset_index()
+
+    df_vendas_vo_cv.rename(columns={'Canal_de_Vendas': 'Setor'}, inplace=True)
+
+    return df_vendas_vo_cv
 
 if __name__ == '__main__':
     
@@ -1292,7 +1356,11 @@ if __name__ == '__main__':
 
     lista_setor = gerar_lista_setor()
 
+    row1 = st.columns(2)
+
     col1, col2, col3 = st.columns([1.5, 3.0, 4.50])
+
+    row1 = st.columns(2)
 
     # Objetos Data Início, Data Fim e Setor
 
@@ -1417,6 +1485,8 @@ if __name__ == '__main__':
 
             with col3:
 
+                i=0
+
                 df_estilizado = gerar_df_estilizado(df_vendas_agrupado)
 
                 st.subheader('Vendas por Vendedor')
@@ -1427,23 +1497,35 @@ if __name__ == '__main__':
 
                     df_estilizado_vendedor_setor = gerar_df_estilizado_vendedor_setor(df_vendas_agrupado)
 
-                    st.subheader('Vendas por Vendedor | Setor')
+                    with row1[i%2]:
 
-                    st.dataframe(df_estilizado_vendedor_setor, hide_index=True, use_container_width=True)
+                        st.subheader('Vendas por Vendedor | Setor')
+
+                        st.dataframe(df_estilizado_vendedor_setor, hide_index=True, use_container_width=True)
+
+                        i+=1
 
                 elif st.session_state.base_luck == 'test_phoenix_salvador' and len(seleciona_setor)==1 and seleciona_setor[0] == 'Vendas Online':
 
                     df_estilizado_vendedor_canal_vendas = gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df_vendas, df_metas_vendedor, df_metas_setor, df_paxs_in)
 
-                    st.subheader('Vendas por Vendedor | Canal de Vendas')
+                    with row1[i%2]:
 
-                    st.dataframe(df_estilizado_vendedor_canal_vendas, hide_index=True, use_container_width=True)
+                        st.subheader('Vendas por Vendedor | Canal de Vendas')
 
-                st.subheader('Vendas por Hotel')
+                        st.dataframe(df_estilizado_vendedor_canal_vendas, hide_index=True, use_container_width=True)
 
-                df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
+                        i+=1
 
-                st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Vendas']], hide_index=True, use_container_width=True)
+                with row1[i%2]:
+
+                    st.subheader('Vendas por Hotel')
+
+                    df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
+
+                    st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Vendas']], hide_index=True, use_container_width=True)
+
+                    i+=1
                 
                 if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
@@ -1451,21 +1533,91 @@ if __name__ == '__main__':
 
                     if not df_setor_agrupado.empty:
 
-                        fig = gerar_grafico_todos_setores(df_setor_agrupado)
+                        with row1[i%2]:
+
+                            fig = gerar_grafico_todos_setores(df_setor_agrupado)
+
+                            st.plotly_chart(fig)
+
+                            i+=1
+
+                        if st.session_state.base_luck == 'test_phoenix_salvador':
+
+                            with row1[i%2]:
+
+                                fig_2 = gerar_grafico_pizza_todos_setores(df_setor_agrupado)
+
+                                st.plotly_chart(fig_2)
+
+                                i+=1
+
+                            df_vendas_vo_cv = gerar_df_vendas_vo_cv(df_vendas)
+
+                            df_setor_vo_cv = df_setor_agrupado[df_setor_agrupado['Setor']!='Vendas Online'].reset_index(drop=True)
+
+                            df_setor_vo_cv = pd.concat([df_setor_vo_cv, df_vendas_vo_cv], ignore_index=True)
+
+                            df_setor_vo_cv = df_setor_vo_cv.sort_values(by='Setor')
+
+                            with row1[i%2]:
+
+                                fig = gerar_grafico_todos_setores(df_setor_vo_cv, 'Valor Total por Setor - Vendas Online Destrinchado')
+
+                                st.plotly_chart(fig)
+
+                                i+=1
+
+                            with row1[i%2]:
+
+                                fig_2 = gerar_grafico_pizza_todos_setores(df_setor_vo_cv, 'Participação % por Setor - Vendas Online Destrinchado')
+
+                                st.plotly_chart(fig_2)
+
+                                i+=1
 
                 else:
 
-                    if len(seleciona_setor)==1 and seleciona_setor[0]=='GUIA':
+                    if len(seleciona_setor)==1 and seleciona_setor[0]=='Guia':
                     
                         df_vendas_grafico = df_vendas_agrupado[(pd.notna(df_vendas_agrupado['Paxs_IN'])) & (df_vendas_agrupado['Paxs_IN']>=20)]
 
-                        fig = gerar_grafico_setor_especifico(df_vendas_grafico)
+                        with row1[i%2]:
+
+                            fig = gerar_grafico_setor_especifico(df_vendas_grafico)
+
+                            st.plotly_chart(fig)
+
+                            i+=1
+
+                    elif len(seleciona_setor)==1 and seleciona_setor[0]=='Vendas Online':
+
+                        with row1[i%2]:
+
+                            fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+
+                            st.plotly_chart(fig)
+
+                            i+=1
+
+                        with row1[i%2]:
+
+                            df_vendas_vo_cv = gerar_df_vendas_vo_cv(df_vendas)
+
+                            fig_2 = gerar_grafico_pizza_todos_setores(df_vendas_vo_cv)
+
+                            st.plotly_chart(fig_2)
+
+                            i+=1
 
                     else:
 
-                        fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+                        with row1[i%2]:
 
-                st.plotly_chart(fig, key="key_1")
+                            fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+
+                            st.plotly_chart(fig)
+
+                            i+=1
 
         else:
 
