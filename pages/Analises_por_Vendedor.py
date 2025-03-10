@@ -33,7 +33,7 @@ def gerar_df_paxs_mes():
 
     df_paxs_mes = pd.merge(df_paxs_in, st.session_state.df_metas, on=['Mes_Ano'], how='left')
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
 
         df_paxs_mes['Paxs_IN_Mensal'] = df_paxs_mes['Total_Paxs'].fillna(0) + df_paxs_mes['Paxs_Desc'].fillna(0)
 
@@ -77,8 +77,12 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
             df_vendas['Desconto_Global_Ajustado'] = df_vendas.apply(lambda row: row['Desconto_Global_Por_Servico'] if pd.notna(row['Desconto_Global_Por_Servico']) and 
                                                                     row['Desconto_Global_Por_Servico'] < 1000 and row['Nome_Servico'] != 'EXTRA' else 0, axis=1)
+            
+        else:
 
-        df_vendas = df_vendas.groupby(['Vendedor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Por_Servico': 'sum', 'Meta': 'first', 
+            df_vendas['Desconto_Global_Ajustado'] = df_vendas['Desconto_Global_Por_Servico']
+
+        df_vendas = df_vendas.groupby(['Vendedor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Ajustado': 'sum', 'Meta': 'first', 
                                                                                                   'Ano': 'mean', 'Mes': 'mean', 'Setor': 'first'})
         
         return df_vendas
@@ -129,7 +133,7 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
         df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas, df_ocupacao_hoteis)
 
-    elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
 
         df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas)
 
@@ -152,7 +156,7 @@ def concatenar_vendas_com_historico_vendedor(df_vendas):
 
         return df_geral_vendedor_1
     
-    elif st.session_state.base_luck == 'test_phoenix_natal':
+    elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador']:
 
         return df_phoenix_vendedor
 
@@ -231,13 +235,18 @@ def colher_ano_setor_vendedor_selecao(col1, col2, tipo_analise):
 def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
 
     def gerar_grafico_acumulado_meta_1(vendedor, df):
+
         df_vendedor = df[df['Vendedor'] == vendedor]
+
         df_anual = df_vendedor.groupby('Ano').agg({
             'Acumulado_Anual': 'mean',
             'Meta_Anual': 'mean'
         }).reset_index()
+
         df_anual['Performance'] = df_anual['Acumulado_Anual'] / df_anual['Meta_Anual']
+
         fig = go.Figure()
+
         fig.add_trace(go.Bar(
             x=df_anual['Ano'],
             y=df_anual['Acumulado_Anual'],
@@ -248,6 +257,7 @@ def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
             textfont=dict(size=10),
             width=0.3,
         ))
+        
         fig.add_trace(go.Bar(
             x=df_anual['Ano'],
             y=df_anual['Meta_Anual'],
@@ -258,6 +268,7 @@ def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
             textfont=dict(size=10),
             width=0.3,             # Define a largura das barras
         ))
+
         fig.update_layout(
             title=f"Acumulado - {vendedor} | Performance - {df_anual['Performance'].loc[0] * 100:.2f}%",
             xaxis_title="Ano",
@@ -312,6 +323,14 @@ def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
             textposition='top center',
             yaxis='y2'
         ))
+
+        if df_vendedor['Ticket_Medio'].max()>=df_vendedor['Meta_Mes'].max():
+
+            yaxis_2_max = df_vendedor['Ticket_Medio'].max() * 1.1
+
+        else:
+
+            yaxis_2_max = df_vendedor['Meta_Mes'].max() * 1.1
         
         fig.update_layout(
             title=f"Anual - {vendedor}",
@@ -323,7 +342,7 @@ def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
                 overlaying='y',
                 side='right',
                 showgrid=False,
-                range=[0, df_vendedor['Ticket_Medio'].max()*1.05]
+                range=[0, yaxis_2_max]
             ), 
             barmode='group',
             legend=dict(
@@ -624,6 +643,45 @@ elif st.session_state.base_luck == 'test_phoenix_natal':
 
                 gerar_df_paxs_in()
 
+elif st.session_state.base_luck == 'test_phoenix_salvador':
+
+    lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
+                                        if item not in st.session_state]
+    
+    if len(lista_keys_fora_do_session_state)>0:
+
+        with st.spinner('Puxando dados do Google Drive...'):
+
+            if 'df_config' in lista_keys_fora_do_session_state:
+
+                puxar_df_config()
+
+            if 'df_metas' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas()
+
+            if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+
+                gerar_df_metas_vendedor()
+
+        with st.spinner('Puxando dados do Phoenix...'):
+
+            if 'df_vendas_final' in lista_keys_fora_do_session_state:
+
+                st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+            if 'df_ranking' in lista_keys_fora_do_session_state:
+
+                gerar_df_ranking()
+
+            if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_guias_in()
+
+            if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                gerar_df_paxs_in()
+
 row_titulo = st.columns(1)
 
 tipo_analise = st.radio('Análise', ['Acompanhamento Anual - Vendedores', 'Historico por Vendedor', 'Meta Mês'], index=None)
@@ -646,7 +704,7 @@ if not 'df_geral_vendedor' in st.session_state:
 
     df_guias_in = st.session_state.df_guias_in.groupby(['Guia', 'Mes_Ano'], as_index=False)['Total_Paxs'].sum()
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
 
         df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in)
 
