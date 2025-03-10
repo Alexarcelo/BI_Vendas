@@ -1218,7 +1218,7 @@ if __name__ == '__main__':
             
             st.session_state.lista_colunas_numero_df_historico_vendedor = ['Ano', 'Mes', 'Valor', 'Meta', 'Paxs_Total']
 
-    st.title('Vendas Gerais por Setor')
+    st.title('Vendas Gerais por Setor.')
 
     st.divider()
 
