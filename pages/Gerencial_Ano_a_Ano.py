@@ -110,7 +110,7 @@ def plotar_graficos_linha_por_setor(setores, df_agrupado):
             yaxis_title='Valor Total',
             xaxis_title='Mês/Ano',
             yaxis=dict(
-                range=[00, 1500000],
+                range=[00, df_setor['Valor_Total'].max() * 1.5],
                 showgrid=False,
             ),
             yaxis2=dict(
@@ -241,7 +241,7 @@ def plotar_grafico_fluxo_paxs(df_filtro_paxs):
     fig_fluxo.update_layout(yaxis2=dict(overlaying='y', 
                     side='right', 
                     title='Variação %',
-                    range=[-500, 100],
+                    range=[total_paxs['Variacao_Percentual'].min()*4, total_paxs['Variacao_Percentual'].max()*1.2],
                     showgrid=False
                     ),
                     xaxis=dict(showgrid=False),
@@ -287,7 +287,7 @@ def plotar_grafico_ticket_medio(df_filtro_receita):
     ))
 
     fig_tm.update_layout(
-        title='Valor Total, Ticket Médio e Variação Percentual',
+        title='Valor Total, Ticket Médio e Variação Percentual (em cima de Valor Total)',
         yaxis_title='Valor',
         xaxis=dict(title='Mês/Ano', showgrid=False),
         yaxis=dict(showgrid=False),
@@ -340,7 +340,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
                 gerar_df_paxs_in()
 
-elif st.session_state.base_luck == 'test_phoenix_natal':
+elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador']:
 
     lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
     
