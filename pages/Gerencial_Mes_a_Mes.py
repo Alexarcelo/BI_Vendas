@@ -173,7 +173,7 @@ def gerar_df_vendas_agrupado_mes_setor(df_vendas, df_metas_setor):
 
     df_vendas_agrupado_mes_setor = df_vendas_agrupado_mes.groupby(['Mes_Ano', 'Setor'], as_index=False).agg({'Venda_Filtrada': 'sum'})
 
-    df_vendas_agrupado_mes_setor['Mes_Ano'] = df_vendas_agrupado_mes_setor['Mes_Ano'].dt.strftime('%B %Y')
+    df_vendas_agrupado_mes_setor['Mes_Ano'] = df_vendas_agrupado_mes_setor['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True)
 
     return df_vendas_agrupado_mes_setor
 
@@ -223,7 +223,7 @@ def gerar_rankings_filtrados_geral(df_ranking, passeios_incluidos):
 
     ranking_filtrado_geral = ranking_filtrado.groupby(['Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
 
-    mes_ranking_geral = ranking_filtrado_geral['Mes_Ano'].dt.strftime('%B %Y').unique()
+    mes_ranking_geral = ranking_filtrado_geral['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True).unique()
 
     return ranking_filtrado_combo_setores, ranking_filtrado_setores, ranking_filtrado_geral, mes_ranking_geral
 
@@ -233,7 +233,7 @@ def plotar_graficos_pizza_desempenho_passeios_geral(mes_ranking_geral, ranking_f
 
     for mes_geral in mes_ranking_geral:
 
-        df_ranking_geral_chart = ranking_filtrado_geral[(ranking_filtrado_geral['Mes_Ano'].dt.strftime('%B %Y') == mes_geral)]
+        df_ranking_geral_chart = ranking_filtrado_geral[(ranking_filtrado_geral['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True) == mes_geral)]
 
         if not df_ranking_geral_chart.empty:
 
@@ -253,7 +253,7 @@ def plotar_graficos_pizza_desempenho_passeios_geral(mes_ranking_geral, ranking_f
 
 def plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores, ranking_filtrado_combo_setores):
 
-    mes_ranking = ranking_filtrado_setores['Mes_Ano'].dt.strftime('%B %Y').unique()
+    mes_ranking = ranking_filtrado_setores['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True).unique()
 
     setor_ranking = ranking_filtrado_setores['Setor'].unique()
 
@@ -261,9 +261,11 @@ def plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores
 
         for setor_ in setor_ranking:
 
-            df_ranking_chart = ranking_filtrado_setores[(ranking_filtrado_setores['Mes_Ano'].dt.strftime('%B %Y') == mes_) & (ranking_filtrado_setores['Setor'] == setor_)]
+            df_ranking_chart = ranking_filtrado_setores[(ranking_filtrado_setores['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True) == mes_) & 
+                                                        (ranking_filtrado_setores['Setor'] == setor_)]
             
-            df_ranking_combos = ranking_filtrado_combo_setores[(ranking_filtrado_combo_setores['Mes_Ano'].dt.strftime('%B %Y') == mes_) & (ranking_filtrado_combo_setores['Setor'] == setor_)]
+            df_ranking_combos = ranking_filtrado_combo_setores[(ranking_filtrado_combo_setores['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True) == mes_) & 
+                                                               (ranking_filtrado_combo_setores['Setor'] == setor_)]
 
             df_ranking_combos['Combo'] = df_ranking_combos['Servico'].apply(lambda x: 'MIX LUCK' if x in st.session_state.combo_luck else 'MIX OUTROS')
 
@@ -351,7 +353,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
                 gerar_df_paxs_in()
 
-elif st.session_state.base_luck == 'test_phoenix_natal':
+elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador']:
 
     lista_keys_fora_do_session_state = [item for item in ['df_reembolsos', 'df_metas', 'df_config', 'df_vendas_final', 'anos_disponiveis', 'df_ranking', 'df_paxs_in'] 
                                         if item not in st.session_state]
