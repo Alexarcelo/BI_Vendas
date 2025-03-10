@@ -72,6 +72,8 @@ def gerar_df_filtrado_hotel(df_filtrado):
 
 def gerar_df_top5_operadora(df_paxs_in):
 
+    df_paxs_in['Total_Paxs'] = df_paxs_in['Total_Paxs'].astype(int)
+
     df_top5_operadora = df_paxs_in.groupby(['Parceiro']).agg({'Total_Paxs': 'sum',}).reset_index()
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
@@ -81,6 +83,10 @@ def gerar_df_top5_operadora(df_paxs_in):
     elif st.session_state.base_luck == 'test_phoenix_natal':
 
         df_top5_operadora = df_top5_operadora.query("Parceiro != 'LUCK NATAL - PDV'").nlargest(5, 'Total_Paxs')
+
+    elif st.session_state.base_luck == 'test_phoenix_salvador':
+
+        df_top5_operadora = df_top5_operadora.query("Parceiro != 'LUCK SALVADOR - PDV'").nlargest(5, 'Total_Paxs')
 
     return df_top5_operadora
 
@@ -124,6 +130,8 @@ def grafico_linha(lista_operadoras, df):
 
 def gerar_graficos_hoteis(df_top15_hotel):
 
+    df_top15_hotel['Total Paxs'] = df_top15_hotel['Total Paxs'].astype(int)
+
     fig_hotel = go.Figure()
 
     fig_hotel.add_trace(go.Bar(
@@ -141,6 +149,7 @@ def gerar_graficos_hoteis(df_top15_hotel):
         title='Maiores Hoteis - Por Fluxo',
         xaxis_title="Estabelecimento",
         yaxis_title="Total Paxs",
+        yaxis=dict(range=[0, df_top15_hotel['Total Paxs'].max()*1.1]),
         template="plotly_white"
     )
 
@@ -163,6 +172,10 @@ def gerar_grafico_paxs_in(df_todos_in):
     fig_paxs_in = go.Figure()
 
     df_todos_in_ano = df_todos_in[df_todos_in['Ano_x'].isin(ano_selecao)]
+
+    df_todos_in_ano['Paxs_Sem_IN'] = df_todos_in_ano['Paxs_Sem_IN'].astype(int)
+
+    df_todos_in_ano['Paxs_Com_IN'] = df_todos_in_ano['Paxs_Com_IN'].astype(int)
 
     fig_paxs_in.add_trace(go.Scatter(
         x=df_todos_in_ano['Mes_Ano'], 
