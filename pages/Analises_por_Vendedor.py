@@ -56,12 +56,6 @@ def gerar_df_ranking():
     st.session_state.df_ranking['Mes'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.month
     
     st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.to_period('M')
-
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        st.session_state.df_ranking['Setor'] = st.session_state.df_ranking['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 
-                                                                                                                        'BASE AEROPORTO': 'LOGISTICA', 'COORD. ESCALA': 'LOGISTICA', 
-                                                                                                                        'KUARA/MANSEAR': 'LOGISTICA'})
     
     st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total_ADT'] + st.session_state.df_ranking['Total_CHD'] / 2
 
@@ -151,6 +145,10 @@ def concatenar_vendas_com_historico_vendedor(df_vendas):
             [['Vendedor', 'Setor', 'Valor', 'Meta', 'Paxs_Total', 'Mes_Ano', 'Ticket_Medio', 'Venda_Esperada']]
 
         df_historico_vendedor = df_historico_vendedor.rename(columns={'Valor': 'Venda_Filtrada', 'Meta': 'Meta_Mes', 'Paxs_Total': 'Paxs_IN_Individual'})
+
+        dict_renomear_setores = {'GUIA': 'Guia', 'PDV': 'Desks', 'HOTEL VENDAS': 'Hotel Vendas', 'GRUPOS': 'Grupos', 'VENDAS ONLINE': 'Vendas Online'}
+
+        df_historico_vendedor['Setor'] = df_historico_vendedor['Setor'].replace(dict_renomear_setores)
 
         df_geral_vendedor_1 = pd.concat([df_historico_vendedor, df_phoenix_vendedor], ignore_index=True)
 
