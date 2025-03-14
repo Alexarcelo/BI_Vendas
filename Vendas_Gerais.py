@@ -790,12 +790,8 @@ def gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df
 
             return [''] * len(row)
         
-    df_metas_vendedor_canal_vendas_periodo = df_metas_vendedor_canal_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], as_index=False)['Meta_Mes'].mean()
-
-    df_metas_vendedor_canal_vendas_periodo.rename(columns={'Meta_Mes': 'Meta_Vendedor_Canal_Vendas'}, inplace=True)
-
     df_estilizado = df_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], dropna=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Ajustado': 'sum', 'Meta': 'mean', 
-                                                                                          'Servico': 'count', 'Reserva': 'nunique'}).reset_index()
+                                                                                        'Servico': 'count', 'Reserva': 'nunique'}).reset_index()
     
     df_estilizado = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_estilizado)
 
@@ -805,26 +801,44 @@ def gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df
 
     df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
 
-    df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_canal_vendas_periodo, on=['Vendedor', 'Canal_de_Vendas'], how='left')
-
     df_metas_vendedor_periodo = df_metas_vendedor.groupby('Vendedor', as_index=False)['Meta_Mes'].mean()
 
     df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_periodo, on='Vendedor', how='left')
 
-    df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta_Vendedor_Canal_Vendas', 'Meta', 'Venda_por_Reserva', 
-                                   'Desconto_Global_Ajustado']]
+    if st.session_state.base_luck == 'test_phoenix_salvador':
+        
+        df_metas_vendedor_canal_vendas_periodo = df_metas_vendedor_canal_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], as_index=False)['Meta_Mes'].mean()
 
-    df_estilizado['Meta_Mes'] = np.where(
-        pd.notna(df_estilizado['Meta_Vendedor_Canal_Vendas']), 
-        df_estilizado['Meta_Vendedor_Canal_Vendas'], 
-        np.where(
+        df_metas_vendedor_canal_vendas_periodo.rename(columns={'Meta_Mes': 'Meta_Vendedor_Canal_Vendas'}, inplace=True)
+
+        df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_canal_vendas_periodo, on=['Vendedor', 'Canal_de_Vendas'], how='left')
+
+        df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta_Vendedor_Canal_Vendas', 'Meta', 'Venda_por_Reserva', 
+                                       'Desconto_Global_Ajustado']]
+        
+        df_estilizado['Meta_Mes'] = np.where(
+            pd.notna(df_estilizado['Meta_Vendedor_Canal_Vendas']), 
+            df_estilizado['Meta_Vendedor_Canal_Vendas'], 
+            np.where(
+                pd.isna(df_estilizado['Meta_Mes']), 
+                df_estilizado['Meta'], 
+                df_estilizado['Meta_Mes']
+                )
+            )
+        
+        df_estilizado = df_estilizado.drop(['Meta_Vendedor_Canal_Vendas', 'Meta'], axis=1)
+
+    else:
+
+        df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
+
+        df_estilizado['Meta_Mes'] = np.where(
             pd.isna(df_estilizado['Meta_Mes']), 
             df_estilizado['Meta'], 
             df_estilizado['Meta_Mes']
-            )
         )
 
-    df_estilizado = df_estilizado.drop(['Meta_Vendedor_Canal_Vendas', 'Meta'], axis=1)
+        df_estilizado = df_estilizado.drop(['Meta'], axis=1)
 
     df_estilizado['% Desconto'] = (df_estilizado['Desconto_Global_Ajustado'] / (df_estilizado['Venda_Filtrada'] + df_estilizado['Desconto_Global_Ajustado']))*100
 
@@ -1505,7 +1519,11 @@ if __name__ == '__main__':
 
                         i+=1
 
-                elif st.session_state.base_luck == 'test_phoenix_salvador' and len(seleciona_setor)==1 and seleciona_setor[0] == 'Vendas Online':
+                elif st.session_state.base_luck in ['test_phoenix_salvador', 'test_phoenix_joao_pessoa'] and len(seleciona_setor)==1 and seleciona_setor[0] == 'Vendas Online':
+
+                    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+                        df_metas_vendedor_canal_vendas = pd.DataFrame(columns=df_vendas.columns)
 
                     df_estilizado_vendedor_canal_vendas = gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df_vendas, df_metas_vendedor, df_metas_setor, df_paxs_in)
 
