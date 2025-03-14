@@ -68,7 +68,7 @@ def adicionar_historico_de_vendas(df_historico, df_vendas):
 
     df_historico = df_historico.rename(columns={'Data': 'Data_Venda', 'Paxs ADT': 'Total_Paxs'})
 
-    df_vendas = pd.concat([df_vendas, df_historico[['Data_Venda', 'Setor', 'Valor_Venda', 'Total_Paxs', 'Mes_Ano']]], ignore_index=True)
+    df_vendas = pd.concat([df_vendas, df_historico[['Ano', 'Mes', 'Setor', 'Valor_Venda', 'Total_Paxs', 'Mes_Ano']]], ignore_index=True)
 
     return df_vendas, df_historico
 
