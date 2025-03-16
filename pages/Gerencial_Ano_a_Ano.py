@@ -215,6 +215,10 @@ def plotar_grafico_fluxo_paxs(df_filtro_paxs):
 
     total_paxs['Variacao_Percentual'] = total_paxs['Paxs'].pct_change() * 100
 
+    if st.session_state.base_luck == 'test_phoenix_noronha':
+
+        total_paxs = total_paxs.iloc[2:].reset_index(drop=True)
+
     fig_fluxo = px.bar(total_paxs,
                 x='Mes_Ano', 
                 y='Paxs', 
@@ -251,6 +255,10 @@ def plotar_grafico_fluxo_paxs(df_filtro_paxs):
     st.plotly_chart(fig_fluxo)
 
 def plotar_grafico_ticket_medio(df_filtro_receita):
+
+    if st.session_state.base_luck == 'test_phoenix_noronha':
+
+        df_filtro_receita = df_filtro_receita.iloc[2:].reset_index(drop=True)
 
     fig_tm = go.Figure()
 
@@ -340,7 +348,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
                 gerar_df_paxs_in()
 
-elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador']:
+elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador', 'test_phoenix_noronha']:
 
     lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final', 'df_paxs_in'] if item not in st.session_state]
     
