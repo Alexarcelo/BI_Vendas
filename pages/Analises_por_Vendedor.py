@@ -37,7 +37,7 @@ def gerar_df_paxs_mes():
 
         df_paxs_mes['Paxs_IN_Mensal'] = df_paxs_mes['Total_Paxs'].fillna(0) + df_paxs_mes['Paxs_Desc'].fillna(0)
 
-    elif st.session_state.base_luck == 'test_phoenix_natal':
+    elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_noronha']:
 
         df_paxs_mes['Paxs_IN_Mensal'] = df_paxs_mes['Total_Paxs'].fillna(0)
 
@@ -58,6 +58,14 @@ def gerar_df_ranking():
     st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.to_period('M')
     
     st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total_ADT'] + st.session_state.df_ranking['Total_CHD'] / 2
+
+    if st.session_state.base_luck == 'test_phoenix_noronha':
+
+        st.session_state.df_ranking.loc[
+            (st.session_state.df_ranking['Vendedor'].isin(['LUCAS', 'Renato Apory'])) &
+            (st.session_state.df_ranking['Mes_Ano'] <= pd.Period('2025-03', freq='M')),
+            'Setor'
+        ] = 'Transferista'
 
 def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
@@ -117,7 +125,13 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
         df_vendas['Ticket_Medio'] = df_vendas['Venda_Filtrada'] / df_vendas['Paxs_IN_Individual']
 
-        df_vendas['Venda_Esperada'] = df_vendas['Paxs_IN_Individual'] * df_vendas['Meta_Mes']
+        if st.session_state.base_luck != 'test_phoenix_noronha':
+
+            df_vendas['Venda_Esperada'] = df_vendas['Paxs_IN_Individual'] * df_vendas['Meta_Mes']
+
+        else:
+
+            df_vendas['Venda_Esperada'] = df_vendas['Meta_Mes']
 
         return df_vendas
     
@@ -127,7 +141,7 @@ def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
         df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas, df_ocupacao_hoteis)
 
-    elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
+    elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador', 'test_phoenix_noronha']:
 
         df_vendas = adicionar_paxs_real_paxs_in_meta_vendedor(df_paxs_mes, df_guias_in, df_vendas)
 
@@ -154,7 +168,7 @@ def concatenar_vendas_com_historico_vendedor(df_vendas):
 
         return df_geral_vendedor_1
     
-    elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador']:
+    elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador', 'test_phoenix_noronha']:
 
         return df_phoenix_vendedor
 
@@ -297,18 +311,20 @@ def plotar_graficos_acumulado_meta_e_vendedor(col1, col2, tipo_analise):
             textposition='outside',
             textfont=dict(size=10)
         ))
+
+        if st.session_state.base_luck != 'test_phoenix_noronha':
         
-        fig.add_trace(go.Scatter(
-            x=df_vendedor['Mes_Ano'],
-            y=df_vendedor['Ticket_Medio'],
-            mode='lines+markers+text',
-            line=dict(color='orange', width=1, shape='spline'),
-            name='Ticket Médio',
-            text=df_vendedor['Ticket_Medio'].apply(formatar_moeda),
-            textfont=dict(size=10, color='orange'),
-            textposition='top center',
-            yaxis='y2'
-        ))
+            fig.add_trace(go.Scatter(
+                x=df_vendedor['Mes_Ano'],
+                y=df_vendedor['Ticket_Medio'],
+                mode='lines+markers+text',
+                line=dict(color='orange', width=1, shape='spline'),
+                name='Ticket Médio',
+                text=df_vendedor['Ticket_Medio'].apply(formatar_moeda),
+                textfont=dict(size=10, color='orange'),
+                textposition='top center',
+                yaxis='y2'
+            ))
         
         fig.add_trace(go.Scatter(
             x=df_vendedor['Mes_Ano'],
@@ -641,7 +657,7 @@ elif st.session_state.base_luck == 'test_phoenix_natal':
 
                 gerar_df_paxs_in()
 
-elif st.session_state.base_luck == 'test_phoenix_salvador':
+elif st.session_state.base_luck in ['test_phoenix_salvador', 'test_phoenix_noronha']:
 
     lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_historico_vendedor', 'df_metas', 'df_vendas_final', 'df_ranking', 'df_guias_in', 'df_paxs_in'] 
                                         if item not in st.session_state]
@@ -702,7 +718,7 @@ if not 'df_geral_vendedor' in st.session_state:
 
     df_guias_in = st.session_state.df_guias_in.groupby(['Guia', 'Mes_Ano'], as_index=False)['Total_Paxs'].sum()
 
-    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
+    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador', 'test_phoenix_noronha']:
 
         df_vendas = gerar_df_vendas(df_paxs_mes, df_guias_in)
 
