@@ -418,7 +418,7 @@ elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador
             if 'df_paxs_in' in lista_keys_fora_do_session_state:
 
                 gerar_df_paxs_in()
-st.session_state.df_ranking
+
 col1, col2 = st.columns([2, 4])
 
 with col1:
