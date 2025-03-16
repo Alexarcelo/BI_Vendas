@@ -291,40 +291,124 @@ def gerar_lista_setor():
 
     return lista_setor
 
-def filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim):
+def colher_periodo_e_setor(col1):
 
-    df_vendas = st.session_state.df_vendas_final[(st.session_state.df_vendas_final['Data_Venda'] >= data_ini) & (st.session_state.df_vendas_final['Data_Venda'] <= data_fim)].reset_index(drop=True)
+    with col1:
 
-    df_paxs_in = st.session_state.df_paxs_in[(st.session_state.df_paxs_in['Data_Execucao'] >= data_ini) & (st.session_state.df_paxs_in['Data_Execucao'] <= data_fim)].reset_index(drop=True)
+        with st.container():
 
-    df_guias_in = st.session_state.df_guias_in[(st.session_state.df_guias_in['Data da Escala'] >= data_ini) & (st.session_state.df_guias_in['Data da Escala'] <= data_fim)]\
-        .reset_index(drop=True)
+            col1_1, col1_2 = st.columns(2)
 
-    df_metas_vendedor = st.session_state.df_metas_vendedor[(st.session_state.df_metas_vendedor['Mes_Ano'] >= mes_ano_ini) & 
-                                                           (st.session_state.df_metas_vendedor['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+            with col1_1:
+
+                primeiro_dia_mes = pd.to_datetime('today').to_period('M').start_time.date()
+
+                data_ini = st.date_input('Data Início', value=primeiro_dia_mes, format='DD/MM/YYYY', key='data_ini_on')
+
+                mes_ano_ini = pd.to_datetime(data_ini).to_period('M')
+
+            with col1_2:
+
+                ultimo_dia_mes = pd.to_datetime('today').to_period('M').end_time.date()
+                
+                data_fim = st.date_input('Data Fim', value=ultimo_dia_mes, format='DD/MM/YYYY', key='data_fim_on')  
+
+                mes_ano_fim = pd.to_datetime(data_fim).to_period('M')
+
+        seleciona_setor = st.multiselect('Setor', sorted(lista_setor), default=None, key='seleciona_setor')
+
+    return data_ini, data_fim, mes_ano_ini, mes_ano_fim, seleciona_setor
+
+def filtrar_periodo_dfs_base_luck(data_ini, data_fim, mes_ano_ini, mes_ano_fim):
+
+    def filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim):
+
+        df_vendas = st.session_state.df_vendas_final[(st.session_state.df_vendas_final['Data_Venda'] >= data_ini) & (st.session_state.df_vendas_final['Data_Venda'] <= data_fim)].reset_index(drop=True)
+
+        df_paxs_in = st.session_state.df_paxs_in[(st.session_state.df_paxs_in['Data_Execucao'] >= data_ini) & (st.session_state.df_paxs_in['Data_Execucao'] <= data_fim)].reset_index(drop=True)
+
+        df_guias_in = st.session_state.df_guias_in[(st.session_state.df_guias_in['Data da Escala'] >= data_ini) & (st.session_state.df_guias_in['Data da Escala'] <= data_fim)]\
+            .reset_index(drop=True)
+
+        df_metas_vendedor = st.session_state.df_metas_vendedor[(st.session_state.df_metas_vendedor['Mes_Ano'] >= mes_ano_ini) & 
+                                                            (st.session_state.df_metas_vendedor['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+            
+        df_metas_setor = st.session_state.df_metas[(st.session_state.df_metas['Mes_Ano'] >= mes_ano_ini) & (st.session_state.df_metas['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+
+        if st.session_state.base_luck=='test_phoenix_natal':
+
+            df_ocupacao_hoteis = st.session_state.df_ocupacao_hoteis[(st.session_state.df_ocupacao_hoteis['Mes_Ano'] >= mes_ano_ini) & 
+                                                                    (st.session_state.df_ocupacao_hoteis['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+            
+            return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis
+
+        elif st.session_state.base_luck=='test_phoenix_salvador':
+
+            df_metas_vendedor_setor = st.session_state.df_metas_vendedor_setor[(st.session_state.df_metas_vendedor_setor['Mes_Ano'] >= mes_ano_ini) &
+                                                                            (st.session_state.df_metas_vendedor_setor['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+            
+            df_metas_vendedor_canal_vendas = st.session_state.df_metas_vendedor_canal_vendas[(st.session_state.df_metas_vendedor_canal_vendas['Mes_Ano'] >= mes_ano_ini) &
+                                                                                            (st.session_state.df_metas_vendedor_canal_vendas['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+
+            return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_metas_vendedor_setor, df_metas_vendedor_canal_vendas
         
-    df_metas_setor = st.session_state.df_metas[(st.session_state.df_metas['Mes_Ano'] >= mes_ano_ini) & (st.session_state.df_metas['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
+        else:
+
+            return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor
+
+    def juntar_servicos_com_nomenclaturas_diferentes(df_vendas):
+
+        dict_alterar_nomes_servicos = dict(zip(st.session_state.df_juntar_servicos['Serviço'], st.session_state.df_juntar_servicos['Serviço Principal']))
+        
+        df_vendas['Servico'] = df_vendas['Servico'].replace(dict_alterar_nomes_servicos)
+
+        return df_vendas
 
     if st.session_state.base_luck=='test_phoenix_natal':
 
-        df_ocupacao_hoteis = st.session_state.df_ocupacao_hoteis[(st.session_state.df_ocupacao_hoteis['Mes_Ano'] >= mes_ano_ini) & 
-                                                                 (st.session_state.df_ocupacao_hoteis['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
-        
+        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+
+        df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+
         return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis
 
-    elif st.session_state.base_luck=='test_phoenix_salvador':
+    elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_noronha']:
 
-        df_metas_vendedor_setor = st.session_state.df_metas_vendedor_setor[(st.session_state.df_metas_vendedor_setor['Mes_Ano'] >= mes_ano_ini) &
-                                                                           (st.session_state.df_metas_vendedor_setor['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
-        
-        df_metas_vendedor_canal_vendas = st.session_state.df_metas_vendedor_canal_vendas[(st.session_state.df_metas_vendedor_canal_vendas['Mes_Ano'] >= mes_ano_ini) &
-                                                                                         (st.session_state.df_metas_vendedor_canal_vendas['Mes_Ano'] <= mes_ano_fim)].reset_index(drop=True)
-
-        return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_metas_vendedor_setor, df_metas_vendedor_canal_vendas
-    
-    else:
+        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
 
         return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor
+
+    elif st.session_state.base_luck == 'test_phoenix_salvador':
+
+        df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_metas_vendedor_setor, df_metas_vendedor_canal_vendas = \
+            filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+
+        df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+
+        return df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_metas_vendedor_setor, df_metas_vendedor_canal_vendas
+
+def filtrar_setores_selecionados(seleciona_setor, df_vendas):
+
+    # Se selecionar um setor específico e tiver Guia selecionado, mas Transferista não tiver, aí vai adicionar Transferista automaticamente para as bases em que eles compoem as metas dos guias
+
+    if not '--- Todos ---' in seleciona_setor \
+        and 'Guia' in seleciona_setor \
+        and not 'Transferista' in seleciona_setor \
+        and st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
+
+        lista_setor = seleciona_setor.copy()
+
+        lista_setor.append('Transferista')
+
+        df_vendas = df_vendas[df_vendas['Setor'].isin(lista_setor)]
+
+    # Se as metas forem separadas, não precisa fazer nada e só filtra os setores selecionados
+
+    elif not '--- Todos ---' in seleciona_setor:
+
+        df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
+
+    return df_vendas
 
 def colher_selecoes_vendedor_canal_hotel(df_vendas, col1):
 
@@ -475,6 +559,12 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
         
         df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Ticket_Medio'].fillna(0)
 
+    elif st.session_state.base_luck == 'test_phoenix_noronha':
+
+        df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Total_Paxs']
+        
+        df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Ticket_Medio'].fillna(0)
+
     elif st.session_state.base_luck == 'test_phoenix_natal':
 
         df_ocupacao_hoteis = df_ocupacao_hoteis.groupby('Vendedor', as_index=False)['Paxs Hotel'].sum()
@@ -560,7 +650,10 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
     if len(seleciona_setor)==1 and seleciona_setor[0]!='--- Todos ---':
 
-        if (seleciona_setor[0]=='Transferista') or (st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0] in ['Desks', 'Guia']):
+        if (seleciona_setor[0]=='Transferista' 
+            and st.session_state.base_luck != 'test_phoenix_noronha') \
+            or (st.session_state.base_luck == 'test_phoenix_natal' 
+                and seleciona_setor[0] in ['Desks', 'Guia']):
 
             tm_vendas = soma_vendas / df_vendas_setores_desejados['Paxs_Ref_TM'].fillna(0).sum()
 
@@ -578,7 +671,8 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
             tm_setor_estip = df_setor_meta[df_setor_meta['Setor']!='Transferista']['Meta'].sum()
 
-        elif st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Vendas Online':
+        elif (st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Vendas Online') \
+            or st.session_state.base_luck == 'test_phoenix_noronha':
 
             tm_setor_estip = df_setor_meta['Meta'].sum() / paxs_recebidos
 
@@ -623,7 +717,13 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
             df_vendas_esperadas = df_vendas_esperadas[df_vendas_esperadas['Setor']!='Transferista']
 
-        df_vendas_esperadas['Venda Esperada Individual'] = df_vendas_esperadas['Meta'] * df_vendas_esperadas['Paxs_Ref_TM']
+        if st.session_state.base_luck != 'test_phoenix_noronha':
+
+            df_vendas_esperadas['Venda Esperada Individual'] = df_vendas_esperadas['Meta'] * df_vendas_esperadas['Paxs_Ref_TM']
+
+        else:
+
+            df_vendas_esperadas['Venda Esperada Individual'] = df_vendas_esperadas['Meta']
 
         meta_esperada_total = df_vendas_esperadas['Venda Esperada Individual'].sum()
 
@@ -649,14 +749,44 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
     return soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto, meta_esperada_formatada, perc_alcancado
 
-def plotar_quadrados_html(titulo, info_numero):
-    
-    st.markdown(f"""
-    <div style="background-color:#f0f0f5; border-radius:10px; border: 2px solid #ccc; text-align: center; width: 180px; margin:0 auto; margin: 0 auto 10px auto; min-height: 50px;">
-        <h3 style="color: #333; font-size: 18px; padding: 0px 10px; text-align: center; margin-bottom: 0px; ">{titulo}</h3>
-        <h2 style="color: #047c6c; font-size: 20px; padding: 10px 30px; text-align: center; margin:0 auto; white-space: nowrap;">{info_numero}</h2>
-    </div>
-    """, unsafe_allow_html=True)
+def plotar_todos_quadrados_html(col2, soma_vendas, meta_esperada_formatada, tm_setor_estip, total_desconto, perc_alcancado, paxs_recebidos, tm_vendas, med_desconto):
+
+    def plotar_quadrados_html(titulo, info_numero):
+        
+        st.markdown(f"""
+        <div style="background-color:#f0f0f5; border-radius:10px; border: 2px solid #ccc; text-align: center; width: 180px; margin:0 auto; margin: 0 auto 10px auto; min-height: 50px;">
+            <h3 style="color: #333; font-size: 18px; padding: 0px 10px; text-align: center; margin-bottom: 0px; ">{titulo}</h3>
+            <h2 style="color: #047c6c; font-size: 20px; padding: 10px 30px; text-align: center; margin:0 auto; white-space: nowrap;">{info_numero}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+            
+        col2_1, col2_2 = st.columns([2,5])
+
+        with col2_1:
+
+            with st.container():
+
+                plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
+
+                plotar_quadrados_html('Meta Estimada', meta_esperada_formatada)
+
+                plotar_quadrados_html('Meta de TM', formatar_moeda(tm_setor_estip))
+
+                plotar_quadrados_html('Total Descontos', formatar_moeda(total_desconto))
+
+        with col2_2:
+                
+            with st.container():
+
+                plotar_quadrados_html('% Alcancado', perc_alcancado)
+
+                plotar_quadrados_html('Paxs Recebidos', paxs_recebidos)
+
+                plotar_quadrados_html('Meta Atingida', formatar_moeda(tm_vendas))
+
+                plotar_quadrados_html('Media de Descontos', med_desconto) 
 
 def gerar_df_estilizado(df_vendas_agrupado):
     
@@ -735,41 +865,9 @@ def gerar_df_estilizado(df_vendas_agrupado):
 
     df_estilizado.columns = ['Vendedor', 'Vendas', 'Ticket Médio', 'Meta T.M.', 'Venda por Reserva', 'R$ Descontos', '% Descontos']
 
-    df_estilizado = df_estilizado.style.apply(highlight_ticket, axis=1)
+    if st.session_state.base_luck == 'test_phoenix_noronha':
 
-    df_estilizado = df_estilizado.format({'Vendas': formatar_moeda, 'Ticket Médio': formatar_moeda, 'Meta T.M.': formatar_moeda, 'Venda por Reserva': '{:.2f}'.format, 
-                                          'R$ Descontos': formatar_moeda, '% Descontos':'{:.2f}%'.format})
-    
-    return df_estilizado
-
-def gerar_df_estilizado_vendedor_setor(df_vendas_agrupado):
-    
-    def highlight_ticket(row):
-
-        if row['Ticket Médio'] > row['Meta T.M.'] and row['Meta T.M.']>0:
-
-            return ['background-color: lightgreen'] * len(row)
-        
-        else:
-
-            return [''] * len(row)
-
-    df_estilizado = df_vendas_agrupado.groupby(['Vendedor', 'Setor'], as_index=False).agg({'Venda_Filtrada': 'sum', 'Total_Paxs': 'mean', 'Meta_Vendedor_Setor': 'sum', 'Servico': 'sum', 
-                                                                                           'Reserva': 'sum', 'Desconto_Global_Ajustado': 'first'})
-    
-    df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
-
-    df_estilizado['Venda_por_Reserva'] = df_estilizado['Servico'] / df_estilizado['Reserva']
-
-    df_estilizado = df_estilizado[['Vendedor', 'Setor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Vendedor_Setor', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
-
-    df_estilizado['% Desconto'] = (df_estilizado['Desconto_Global_Ajustado'] / (df_estilizado['Venda_Filtrada'] + df_estilizado['Desconto_Global_Ajustado']))*100
-
-    df_estilizado['% Desconto'] = df_estilizado['% Desconto'].fillna(0)
-
-    df_estilizado = df_estilizado.drop_duplicates(keep='last')
-
-    df_estilizado.columns = ['Vendedor', 'Setor', 'Vendas', 'Ticket Médio', 'Meta T.M.', 'Venda por Reserva', 'R$ Descontos', '% Descontos']
+        df_estilizado['Meta T.M.'] = df_estilizado['Meta T.M.'] / paxs_recebidos
 
     df_estilizado = df_estilizado.style.apply(highlight_ticket, axis=1)
 
@@ -778,82 +876,535 @@ def gerar_df_estilizado_vendedor_setor(df_vendas_agrupado):
     
     return df_estilizado
 
-def gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df_vendas, df_metas_vendedor, df_metas_setor, df_paxs_in):
+def plotar_vendas_por_vendedor(df_estilizado):
+
+    st.subheader('Vendas por Vendedor')
+
+    st.dataframe(
+        df_estilizado, 
+        hide_index=True, 
+        use_container_width=True
+    )
+
+def plotar_vendas_por_vendedor_setor_canal_vendas(seleciona_setor, df_vendas_agrupado, row1, i, df_vendas, df_paxs_in, df_metas_vendedor=None, df_metas_setor=None, 
+                                                    df_metas_vendedor_canal_vendas=None):
     
-    def highlight_ticket(row):
-
-        if row['Ticket Médio'] > row['Meta T.M.'] and row['Meta T.M.']>0:
-
-            return ['background-color: lightgreen'] * len(row)
+    def gerar_df_estilizado_vendedor_setor(df_vendas_agrupado):
         
+        def highlight_ticket(row):
+
+            if row['Ticket Médio'] > row['Meta T.M.'] and row['Meta T.M.']>0:
+
+                return ['background-color: lightgreen'] * len(row)
+            
+            else:
+
+                return [''] * len(row)
+
+        df_estilizado = df_vendas_agrupado.groupby(['Vendedor', 'Setor'], as_index=False).agg({'Venda_Filtrada': 'sum', 'Total_Paxs': 'mean', 'Meta_Vendedor_Setor': 'sum', 'Servico': 'sum', 
+                                                                                            'Reserva': 'sum', 'Desconto_Global_Ajustado': 'first'})
+        
+        df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
+
+        df_estilizado['Venda_por_Reserva'] = df_estilizado['Servico'] / df_estilizado['Reserva']
+
+        df_estilizado = df_estilizado[['Vendedor', 'Setor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Vendedor_Setor', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
+
+        df_estilizado['% Desconto'] = (df_estilizado['Desconto_Global_Ajustado'] / (df_estilizado['Venda_Filtrada'] + df_estilizado['Desconto_Global_Ajustado']))*100
+
+        df_estilizado['% Desconto'] = df_estilizado['% Desconto'].fillna(0)
+
+        df_estilizado = df_estilizado.drop_duplicates(keep='last')
+
+        df_estilizado.columns = ['Vendedor', 'Setor', 'Vendas', 'Ticket Médio', 'Meta T.M.', 'Venda por Reserva', 'R$ Descontos', '% Descontos']
+
+        df_estilizado = df_estilizado.style.apply(highlight_ticket, axis=1)
+
+        df_estilizado = df_estilizado.format({'Vendas': formatar_moeda, 'Ticket Médio': formatar_moeda, 'Meta T.M.': formatar_moeda, 'Venda por Reserva': '{:.2f}'.format, 
+                                            'R$ Descontos': formatar_moeda, '% Descontos':'{:.2f}%'.format})
+        
+        return df_estilizado
+
+    def gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df_vendas, df_metas_vendedor, df_metas_setor, df_paxs_in):
+        
+        def highlight_ticket(row):
+
+            if row['Ticket Médio'] > row['Meta T.M.'] and row['Meta T.M.']>0:
+
+                return ['background-color: lightgreen'] * len(row)
+            
+            else:
+
+                return [''] * len(row)
+            
+        df_estilizado = df_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], dropna=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Ajustado': 'sum', 'Meta': 'mean', 
+                                                                                            'Servico': 'count', 'Reserva': 'nunique'}).reset_index()
+        
+        df_estilizado = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_estilizado)
+
+        df_estilizado['Venda_Filtrada'] = df_estilizado['Valor_Venda'].fillna(0) - df_estilizado['Valor_Reembolso'].fillna(0)
+
+        df_estilizado['Venda_por_Reserva'] = df_estilizado['Servico'] / df_estilizado['Reserva']
+
+        df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
+
+        df_metas_vendedor_periodo = df_metas_vendedor.groupby('Vendedor', as_index=False)['Meta_Mes'].mean()
+
+        df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_periodo, on='Vendedor', how='left')
+
+        if st.session_state.base_luck == 'test_phoenix_salvador':
+            
+            df_metas_vendedor_canal_vendas_periodo = df_metas_vendedor_canal_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], as_index=False)['Meta_Mes'].mean()
+
+            df_metas_vendedor_canal_vendas_periodo.rename(columns={'Meta_Mes': 'Meta_Vendedor_Canal_Vendas'}, inplace=True)
+
+            df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_canal_vendas_periodo, on=['Vendedor', 'Canal_de_Vendas'], how='left')
+
+            df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta_Vendedor_Canal_Vendas', 'Meta', 'Venda_por_Reserva', 
+                                        'Desconto_Global_Ajustado']]
+            
+            df_estilizado['Meta_Mes'] = np.where(
+                pd.notna(df_estilizado['Meta_Vendedor_Canal_Vendas']), 
+                df_estilizado['Meta_Vendedor_Canal_Vendas'], 
+                np.where(
+                    pd.isna(df_estilizado['Meta_Mes']), 
+                    df_estilizado['Meta'], 
+                    df_estilizado['Meta_Mes']
+                    )
+                )
+            
+            df_estilizado = df_estilizado.drop(['Meta_Vendedor_Canal_Vendas', 'Meta'], axis=1)
+
         else:
 
-            return [''] * len(row)
-        
-    df_estilizado = df_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], dropna=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Ajustado': 'sum', 'Meta': 'mean', 
-                                                                                        'Servico': 'count', 'Reserva': 'nunique'}).reset_index()
-    
-    df_estilizado = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_estilizado)
+            df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
 
-    df_estilizado['Venda_Filtrada'] = df_estilizado['Valor_Venda'].fillna(0) - df_estilizado['Valor_Reembolso'].fillna(0)
-
-    df_estilizado['Venda_por_Reserva'] = df_estilizado['Servico'] / df_estilizado['Reserva']
-
-    df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
-
-    df_metas_vendedor_periodo = df_metas_vendedor.groupby('Vendedor', as_index=False)['Meta_Mes'].mean()
-
-    df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_periodo, on='Vendedor', how='left')
-
-    if st.session_state.base_luck == 'test_phoenix_salvador':
-        
-        df_metas_vendedor_canal_vendas_periodo = df_metas_vendedor_canal_vendas.groupby(['Vendedor', 'Canal_de_Vendas'], as_index=False)['Meta_Mes'].mean()
-
-        df_metas_vendedor_canal_vendas_periodo.rename(columns={'Meta_Mes': 'Meta_Vendedor_Canal_Vendas'}, inplace=True)
-
-        df_estilizado = pd.merge(df_estilizado, df_metas_vendedor_canal_vendas_periodo, on=['Vendedor', 'Canal_de_Vendas'], how='left')
-
-        df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta_Vendedor_Canal_Vendas', 'Meta', 'Venda_por_Reserva', 
-                                       'Desconto_Global_Ajustado']]
-        
-        df_estilizado['Meta_Mes'] = np.where(
-            pd.notna(df_estilizado['Meta_Vendedor_Canal_Vendas']), 
-            df_estilizado['Meta_Vendedor_Canal_Vendas'], 
-            np.where(
+            df_estilizado['Meta_Mes'] = np.where(
                 pd.isna(df_estilizado['Meta_Mes']), 
                 df_estilizado['Meta'], 
                 df_estilizado['Meta_Mes']
-                )
             )
+
+            df_estilizado = df_estilizado.drop(['Meta'], axis=1)
+
+        df_estilizado['% Desconto'] = (df_estilizado['Desconto_Global_Ajustado'] / (df_estilizado['Venda_Filtrada'] + df_estilizado['Desconto_Global_Ajustado']))*100
+
+        df_estilizado['% Desconto'] = df_estilizado['% Desconto'].fillna(0)
+
+        df_estilizado = df_estilizado.drop_duplicates(keep='last')
+
+        df_estilizado.columns = ['Vendedor', 'Canal de Vendas', 'Vendas', 'Ticket Médio', 'Meta T.M.', 'Venda por Reserva', 'R$ Descontos', '% Descontos']
+
+        df_estilizado = df_estilizado.style.apply(highlight_ticket, axis=1)
+
+        df_estilizado = df_estilizado.format({'Vendas': formatar_moeda, 'Ticket Médio': formatar_moeda, 'Meta T.M.': formatar_moeda, 'Venda por Reserva': '{:.2f}'.format, 
+                                            'R$ Descontos': formatar_moeda, '% Descontos':'{:.2f}%'.format})
         
-        df_estilizado = df_estilizado.drop(['Meta_Vendedor_Canal_Vendas', 'Meta'], axis=1)
+        return df_estilizado
 
-    else:
+    if st.session_state.base_luck == 'test_phoenix_salvador' \
+        and (len(seleciona_setor)>1 or seleciona_setor[0] == '--- Todos ---'):
 
-        df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
+        df_estilizado_vendedor_setor = gerar_df_estilizado_vendedor_setor(df_vendas_agrupado)
 
-        df_estilizado['Meta_Mes'] = np.where(
-            pd.isna(df_estilizado['Meta_Mes']), 
-            df_estilizado['Meta'], 
-            df_estilizado['Meta_Mes']
+        with row1[i%2]:
+
+            st.subheader('Vendas por Vendedor | Setor')
+
+            st.dataframe(
+                df_estilizado_vendedor_setor, 
+                hide_index=True, 
+                use_container_width=True
+            )
+
+            i+=1
+
+    elif st.session_state.base_luck in ['test_phoenix_salvador', 'test_phoenix_joao_pessoa', 'test_phoenix_noronha'] \
+        and len(seleciona_setor)==1 and seleciona_setor[0] == 'Vendas Online':
+
+        if df_metas_vendedor_canal_vendas is None:
+
+            df_metas_vendedor_canal_vendas = pd.DataFrame(columns=df_vendas.columns)
+
+        df_estilizado_vendedor_canal_vendas = gerar_df_estilizado_vendedor_canal_vendas(
+            df_metas_vendedor_canal_vendas, 
+            df_vendas, 
+            df_metas_vendedor, 
+            df_metas_setor, 
+            df_paxs_in
         )
 
-        df_estilizado = df_estilizado.drop(['Meta'], axis=1)
+        with row1[i%2]:
 
-    df_estilizado['% Desconto'] = (df_estilizado['Desconto_Global_Ajustado'] / (df_estilizado['Venda_Filtrada'] + df_estilizado['Desconto_Global_Ajustado']))*100
+            st.subheader('Vendas por Vendedor | Canal de Vendas')
 
-    df_estilizado['% Desconto'] = df_estilizado['% Desconto'].fillna(0)
+            st.dataframe(
+                df_estilizado_vendedor_canal_vendas, 
+                hide_index=True, 
+                use_container_width=True
+            )
 
-    df_estilizado = df_estilizado.drop_duplicates(keep='last')
+            i+=1
 
-    df_estilizado.columns = ['Vendedor', 'Canal de Vendas', 'Vendas', 'Ticket Médio', 'Meta T.M.', 'Venda por Reserva', 'R$ Descontos', '% Descontos']
+    return i
 
-    df_estilizado = df_estilizado.style.apply(highlight_ticket, axis=1)
+def plotar_vendas_por_hotel(row1, i, df_hotel):
 
-    df_estilizado = df_estilizado.format({'Vendas': formatar_moeda, 'Ticket Médio': formatar_moeda, 'Meta T.M.': formatar_moeda, 'Venda por Reserva': '{:.2f}'.format, 
-                                          'R$ Descontos': formatar_moeda, '% Descontos':'{:.2f}%'.format})
-    
-    return df_estilizado
+    with row1[i%2]:
+
+        st.subheader('Vendas por Hotel')
+
+        df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
+
+        st.dataframe(
+            df_hotel[['Vendedor', 'Hotel', 'Vendas']], 
+            hide_index=True, 
+            use_container_width=True
+            )
+
+        i+=1
+
+    return i
+
+def plotar_grafico_todos_setores(row1, i, df_setor_agrupado):
+
+    with row1[i%2]:
+
+        fig = gerar_grafico_todos_setores(df_setor_agrupado)
+
+        st.plotly_chart(fig)
+
+        i+=1
+
+    return i
+
+def plotar_grafico_pizza_todos_setores(row1, i, df_setor_agrupado):
+
+    with row1[i%2]:
+
+        fig_2 = gerar_grafico_pizza_todos_setores(df_setor_agrupado)
+
+        st.plotly_chart(fig_2)
+
+        i+=1
+
+    return i
+
+def gerar_df_vendas_vo_cv(df_vendas):
+
+    df_vendas_vo_cv = df_vendas.copy()
+
+    df_vendas_vo_cv['Venda_Filtrada'] = df_vendas_vo_cv['Valor_Venda'].fillna(0) - df_vendas_vo_cv['Valor_Reembolso'].fillna(0)
+
+    df_vendas_vo_cv = df_vendas_vo_cv[df_vendas_vo_cv['Setor']=='Vendas Online'].groupby('Canal_de_Vendas')['Venda_Filtrada'].sum().reset_index()
+
+    df_vendas_vo_cv.rename(columns={'Canal_de_Vendas': 'Setor'}, inplace=True)
+
+    return df_vendas_vo_cv
+
+def plotar_grafico_todos_setores_vo_destrinchado(df_setor_agrupado, df_vendas_vo_cv, row1, i):
+
+    df_setor_vo_cv = df_setor_agrupado[df_setor_agrupado['Setor']!='Vendas Online'].reset_index(drop=True)
+
+    df_setor_vo_cv = pd.concat(
+        [df_setor_vo_cv, df_vendas_vo_cv], 
+        ignore_index=True
+    )
+
+    df_setor_vo_cv = df_setor_vo_cv.sort_values(by='Setor')
+
+    with row1[i%2]:
+
+        fig = gerar_grafico_todos_setores(df_setor_vo_cv, 'Valor Total por Setor - Vendas Online Destrinchado')
+
+        st.plotly_chart(fig)
+
+        i+=1
+
+    with row1[i%2]:
+
+        fig_2 = gerar_grafico_pizza_todos_setores(df_setor_vo_cv, 'Participação % por Setor - Vendas Online Destrinchado')
+
+        st.plotly_chart(fig_2)
+
+        i+=1
+
+    return i
+
+def plotar_grafico_setor_guia(df_vendas_agrupado, row1, i):
+
+    df_vendas_grafico = df_vendas_agrupado[(pd.notna(df_vendas_agrupado['Paxs_IN'])) & (df_vendas_agrupado['Paxs_IN']>=20)]
+
+    if len(df_vendas_grafico)==0:
+
+        df_vendas_grafico = df_vendas_agrupado
+
+    with row1[i%2]:
+
+        fig = gerar_grafico_setor_especifico(df_vendas_grafico)
+
+        st.plotly_chart(fig)
+
+        i+=1
+
+    return i
+
+def plotar_grafico_setor_vendas_online(df_vendas_agrupado, row1, i, df_vendas):
+
+    with row1[i%2]:
+
+        fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+
+        st.plotly_chart(fig)
+
+        i+=1
+
+    with row1[i%2]:
+
+        df_vendas_vo_cv = gerar_df_vendas_vo_cv(df_vendas)
+
+        fig_2 = gerar_grafico_pizza_todos_setores(df_vendas_vo_cv)
+
+        st.plotly_chart(fig_2)
+
+        i+=1
+
+    return i
+
+def plotar_grafico_setor_especifico(df_vendas_agrupado, row1, i):
+
+    with row1[i%2]:
+
+        fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
+
+        st.plotly_chart(fig)
+
+        i+=1
+
+    return i
+
+def gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, colunas_group_by):
+
+    df_servicos_casa_vs_terceiros = df_cont_passeio.copy()
+
+    df_servicos_casa_vs_terceiros['Serviços Terceiros'] = df_servicos_casa_vs_terceiros['Servico'].apply(lambda x: 'Serviços Terceiros' 
+                                                                                                            if x in st.session_state.servicos_terceiros 
+                                                                                                            else 'Serviços da Casa')
+
+    df_servicos_casa_vs_terceiros = df_servicos_casa_vs_terceiros.groupby(colunas_group_by, as_index=False)['Total Paxs'].sum()
+
+    return df_servicos_casa_vs_terceiros
+
+def plotar_todos_graficos_pizza_todos_setores(df_cont_passeio, row0):
+
+    def gerar_df_todos_vendedores_filtrado(df_cont_passeio, passeios_incluidos):
+
+        df_todos_vendedores_filtrado = df_cont_passeio[df_cont_passeio['Servico'].isin(passeios_incluidos)]
+
+        if st.session_state.base_luck=='test_phoenix_joao_pessoa':
+
+            df_todos_vendedores_filtrado['Servico'] = df_todos_vendedores_filtrado['Servico'].replace({'EMBARCAÇAO - CATAMARÃ DO FORRÓ ': 'CATAMARÃ DO FORRÓ', 
+                                                                                                    'INGRESSO - BY NIGHT ': 'BY NIGHT PARAHYBA OXENTE '}) 
+
+        return df_todos_vendedores_filtrado
+
+    def gerar_grafico_pizza_servicos_terceiros_da_casa_todos_vendedores(df):
+
+        fig = px.pie(
+            df, 
+            names='Serviços Terceiros', 
+            values='Total Paxs', 
+            title='Distribuição de Paxs - Terceiros vs Da Casa'
+            )
+
+        fig.update_traces(
+            texttemplate='%{percent}', 
+            hovertemplate='%{label}: %{value} Paxs'
+            )
+
+        fig.update_layout(
+            showlegend=True, 
+            margin=dict(t=50, b=50, l=50, r=50)
+            )
+
+        return fig
+
+    def gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, passeios_incluidos):
+
+        fig = px.pie(
+            df_todos_vendedores_filtrado, 
+            names='Servico', 
+            values='Total Paxs', 
+            title='Distribuição de Paxs por Passeio', 
+            category_orders={'Servico': passeios_incluidos}
+            )
+
+        if st.session_state.base_luck == 'test_phoenix_salvador':
+
+            texto_tag = '%{percent} - %{value:d} Paxs'
+
+        else:
+
+            texto_tag = '%{percent}'
+
+        fig.update_traces(
+            texttemplate=texto_tag, 
+            hovertemplate='%{label}: %{value} Paxs'
+            )
+
+        fig.update_layout(
+            showlegend=True, 
+            margin=dict(
+                t=50, 
+                b=50, 
+                l=50, 
+                r=50
+                )
+            )
+
+        return fig
+
+    def plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2=None):
+
+        if not fig_2 is None:
+
+            with row0[0]:
+
+                st.plotly_chart(fig)
+
+            with row0[1]:
+
+                st.plotly_chart(fig_2)
+
+        else:
+
+            st.plotly_chart(fig)
+
+    df_todos_vendedores_filtrado = gerar_df_todos_vendedores_filtrado(df_cont_passeio, st.session_state.passeios_incluidos)
+
+    if st.session_state.base_luck == 'test_phoenix_natal':
+
+        df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Serviços Terceiros'])
+
+        fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_todos_vendedores(df_servicos_casa_vs_terceiros)
+
+    if not df_todos_vendedores_filtrado.empty:
+
+        fig = gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, st.session_state.passeios_incluidos)
+
+        if st.session_state.base_luck == 'test_phoenix_natal':
+
+            plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2)
+
+        elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador', 'test_phoenix_noronha']:
+
+            plotar_graficos_pizza_todos_vendedores(row0, fig)
+
+def plotar_todos_graficos_pizza_por_vendedor(df_cont_passeio, row0):
+
+    def gerar_df_vendedor_filtrado(df_cont_passeio, passeios_incluidos, vendedor):
+
+        df_vendedor_filtrado = df_cont_passeio[(df_cont_passeio['Vendedor'] == vendedor) & (df_cont_passeio['Servico'].isin(passeios_incluidos))]
+
+        if st.session_state.base_luck=='test_phoenix_joao_pessoa':
+
+            df_vendedor_filtrado['Servico'] = df_vendedor_filtrado['Servico'].replace({
+                'EMBARCAÇAO - CATAMARÃ DO FORRÓ ': 'CATAMARÃ DO FORRÓ', 
+                'INGRESSO - BY NIGHT ': 'BY NIGHT PARAHYBA OXENTE '
+                }
+            ) 
+
+        return df_vendedor_filtrado
+
+    def gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, passeios_incluidos):
+
+        fig = px.pie(
+            df_vendedor_filtrado, 
+            names='Servico', 
+            values='Total Paxs', 
+            title=f'Distribuição de Paxs por Passeio - {vendedor}', 
+            category_orders={'Servico': passeios_incluidos}
+            )
+
+        fig.update_traces(
+            texttemplate='%{percent}', 
+            hovertemplate='%{label}: %{value} Paxs'
+            )
+        
+        fig.update_layout(
+            showlegend=True, 
+            margin=dict(
+                t=50, 
+                b=50, 
+                l=50, 
+                r=50
+                )
+            )
+
+        return fig
+
+    def gerar_grafico_pizza_servicos_terceiros_da_casa_vendedor(df_vendedor_filtrado, vendedor):
+
+        fig = px.pie(
+            df_vendedor_filtrado, 
+            names='Serviços Terceiros', 
+            values='Total Paxs', 
+            title=f'Distribuição de Paxs - Terceiros vs Da Casa - {vendedor}', 
+            )
+
+        fig.update_traces(texttemplate='%{percent}', hovertemplate='%{label}: %{value} Paxs')
+        
+        fig.update_layout(showlegend=True, margin=dict(t=50, b=50, l=50, r=50))
+
+        return fig
+
+    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador', 'test_phoenix_noronha']:
+
+        coluna = 0
+
+        for vendedor in df_cont_passeio['Vendedor'].unique():
+
+            df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
+            
+            if not df_vendedor_filtrado.empty:
+
+                fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
+
+                with row0[coluna%2]:
+            
+                    st.plotly_chart(fig)    
+
+                coluna+=1
+
+    elif st.session_state.base_luck == 'test_phoenix_natal':
+
+        df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Vendedor', 'Serviços Terceiros'])
+
+        coluna = 0
+
+        for vendedor in df_cont_passeio['Vendedor'].unique():
+
+            df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
+
+            df_servicos_casa_vs_terceiros_vendedor = df_servicos_casa_vs_terceiros[df_servicos_casa_vs_terceiros['Vendedor']==vendedor]
+            
+            if not df_vendedor_filtrado.empty:
+
+                fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
+
+                fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_vendedor(df_servicos_casa_vs_terceiros_vendedor, vendedor)
+
+                with row0[coluna%2]:
+            
+                    st.plotly_chart(fig)
+
+                coluna+=1
+
+                with row0[coluna%2]:
+            
+                    st.plotly_chart(fig_2)
+
+                coluna+=1
 
 def gerar_grafico_todos_setores(df_setor_agrupado, titulo=None):
 
@@ -970,125 +1521,6 @@ def gerar_grafico_setor_especifico(df_vendas_agrupado):
 
     return fig
 
-def gerar_df_todos_vendedores_filtrado(df_cont_passeio, passeios_incluidos):
-
-    df_todos_vendedores_filtrado = df_cont_passeio[df_cont_passeio['Servico'].isin(passeios_incluidos)]
-
-    if st.session_state.base_luck=='test_phoenix_joao_pessoa':
-
-        df_todos_vendedores_filtrado['Servico'] = df_todos_vendedores_filtrado['Servico'].replace({'EMBARCAÇAO - CATAMARÃ DO FORRÓ ': 'CATAMARÃ DO FORRÓ', 
-                                                                                                   'INGRESSO - BY NIGHT ': 'BY NIGHT PARAHYBA OXENTE '}) 
-
-    return df_todos_vendedores_filtrado
-
-def gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, passeios_incluidos):
-
-    fig = px.pie(
-        df_todos_vendedores_filtrado, 
-        names='Servico', 
-        values='Total Paxs', 
-        title='Distribuição de Paxs por Passeio', 
-        category_orders={'Servico': passeios_incluidos}
-        )
-
-    if st.session_state.base_luck == 'test_phoenix_salvador':
-
-        texto_tag = '%{percent} - %{value:d} Paxs'
-
-    else:
-
-        texto_tag = '%{percent}'
-
-    fig.update_traces(
-        texttemplate=texto_tag, 
-        hovertemplate='%{label}: %{value} Paxs'
-        )
-
-    fig.update_layout(
-        showlegend=True, 
-        margin=dict(
-            t=50, 
-            b=50, 
-            l=50, 
-            r=50
-            )
-        )
-
-    return fig
-
-def gerar_grafico_pizza_servicos_terceiros_da_casa_todos_vendedores(df):
-
-    fig = px.pie(
-        df, 
-        names='Serviços Terceiros', 
-        values='Total Paxs', 
-        title='Distribuição de Paxs - Terceiros vs Da Casa'
-        )
-
-    fig.update_traces(
-        texttemplate='%{percent}', 
-        hovertemplate='%{label}: %{value} Paxs'
-        )
-
-    fig.update_layout(
-        showlegend=True, 
-        margin=dict(t=50, b=50, l=50, r=50)
-        )
-
-    return fig
-
-def gerar_df_vendedor_filtrado(df_cont_passeio, passeios_incluidos, vendedor):
-
-    df_vendedor_filtrado = df_cont_passeio[(df_cont_passeio['Vendedor'] == vendedor) & (df_cont_passeio['Servico'].isin(passeios_incluidos))]
-
-    if st.session_state.base_luck=='test_phoenix_joao_pessoa':
-
-        df_vendedor_filtrado['Servico'] = df_vendedor_filtrado['Servico'].replace({'EMBARCAÇAO - CATAMARÃ DO FORRÓ ': 'CATAMARÃ DO FORRÓ', 'INGRESSO - BY NIGHT ': 'BY NIGHT PARAHYBA OXENTE '}) 
-
-    return df_vendedor_filtrado
-
-def gerar_grafico_pizza_servicos_terceiros_da_casa_vendedor(df_vendedor_filtrado, vendedor):
-
-    fig = px.pie(
-        df_vendedor_filtrado, 
-        names='Serviços Terceiros', 
-        values='Total Paxs', 
-        title=f'Distribuição de Paxs - Terceiros vs Da Casa - {vendedor}', 
-        )
-
-    fig.update_traces(texttemplate='%{percent}', hovertemplate='%{label}: %{value} Paxs')
-    
-    fig.update_layout(showlegend=True, margin=dict(t=50, b=50, l=50, r=50))
-
-    return fig
-
-def gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, passeios_incluidos):
-
-    fig = px.pie(
-        df_vendedor_filtrado, 
-        names='Servico', 
-        values='Total Paxs', 
-        title=f'Distribuição de Paxs por Passeio - {vendedor}', 
-        category_orders={'Servico': passeios_incluidos}
-        )
-
-    fig.update_traces(
-        texttemplate='%{percent}', 
-        hovertemplate='%{label}: %{value} Paxs'
-        )
-    
-    fig.update_layout(
-        showlegend=True, 
-        margin=dict(
-            t=50, 
-            b=50, 
-            l=50, 
-            r=50
-            )
-        )
-
-    return fig
-
 def ajustar_valor_venda_servicos_guias_com_adicional(df_vendas):
 
     df_vendas = df_vendas.merge(st.session_state.df_custos_com_adicionais, on=['Servico', 'Adicional'], how='left')
@@ -1119,54 +1551,6 @@ def ajustar_valor_venda_servicos_guias_com_adicional(df_vendas):
         df_vendas.loc[mask_servicos_guias_com_adicional, 'Valor Adicional Total'].fillna(0)
 
     return df_vendas
-
-def juntar_servicos_com_nomenclaturas_diferentes(df_vendas):
-
-    dict_alterar_nomes_servicos = dict(zip(st.session_state.df_juntar_servicos['Serviço'], st.session_state.df_juntar_servicos['Serviço Principal']))
-    
-    df_vendas['Servico'] = df_vendas['Servico'].replace(dict_alterar_nomes_servicos)
-
-    return df_vendas
-
-def gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, colunas_group_by):
-
-    df_servicos_casa_vs_terceiros = df_cont_passeio.copy()
-
-    df_servicos_casa_vs_terceiros['Serviços Terceiros'] = df_servicos_casa_vs_terceiros['Servico'].apply(lambda x: 'Serviços Terceiros' 
-                                                                                                            if x in st.session_state.servicos_terceiros 
-                                                                                                            else 'Serviços da Casa')
-
-    df_servicos_casa_vs_terceiros = df_servicos_casa_vs_terceiros.groupby(colunas_group_by, as_index=False)['Total Paxs'].sum()
-
-    return df_servicos_casa_vs_terceiros
-
-def plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2=None):
-
-    if not fig_2 is None:
-
-        with row0[0]:
-
-            st.plotly_chart(fig)
-
-        with row0[1]:
-
-            st.plotly_chart(fig_2)
-
-    else:
-
-        st.plotly_chart(fig)
-
-def gerar_df_vendas_vo_cv(df_vendas):
-
-    df_vendas_vo_cv = df_vendas.copy()
-
-    df_vendas_vo_cv['Venda_Filtrada'] = df_vendas_vo_cv['Valor_Venda'].fillna(0) - df_vendas_vo_cv['Valor_Reembolso'].fillna(0)
-
-    df_vendas_vo_cv = df_vendas_vo_cv[df_vendas_vo_cv['Setor']=='Vendas Online'].groupby('Canal_de_Vendas')['Venda_Filtrada'].sum().reset_index()
-
-    df_vendas_vo_cv.rename(columns={'Canal_de_Vendas': 'Setor'}, inplace=True)
-
-    return df_vendas_vo_cv
 
 if __name__ == '__main__':
     
@@ -1211,6 +1595,8 @@ if __name__ == '__main__':
         elif base_fonte=='fen':
 
             st.session_state.base_luck = 'test_phoenix_noronha'
+
+            st.session_state.id_gsheet_metas_vendas = '13_3TZwLW2Q1Yt1JkWpq2wEEHLCTL9KbVvlx6zQd28Zo'
 
         elif base_fonte=='nat':
 
@@ -1368,6 +1754,40 @@ if __name__ == '__main__':
 
                     gerar_df_paxs_in()
 
+    elif st.session_state.base_luck == 'test_phoenix_noronha':
+
+        lista_keys_fora_do_session_state = [item for item in ['df_metas_vendedor', 'df_metas', 'df_config', 'df_vendas_final', 'df_guias_in', 'df_paxs_in'] if item not in st.session_state]
+        
+        if len(lista_keys_fora_do_session_state)>0:
+
+            with st.spinner('Puxando dados do Google Drive...'):
+
+                if 'df_metas_vendedor' in lista_keys_fora_do_session_state:
+
+                    gerar_df_metas_vendedor()
+
+                if 'df_metas' in lista_keys_fora_do_session_state:
+
+                    gerar_df_metas()
+
+                if 'df_config' in lista_keys_fora_do_session_state:
+
+                    puxar_df_config()
+
+            with st.spinner('Puxando dados do Phoenix...'):
+
+                if 'df_vendas_final' in lista_keys_fora_do_session_state:
+
+                    st.session_state.df_vendas_final = gerar_df_vendas_final()
+
+                if 'df_guias_in' in lista_keys_fora_do_session_state:
+
+                    gerar_df_guias_in()
+
+                if 'df_paxs_in' in lista_keys_fora_do_session_state:
+
+                    gerar_df_paxs_in()
+
     lista_setor = gerar_lista_setor()
 
     row1 = st.columns(2)
@@ -1378,29 +1798,7 @@ if __name__ == '__main__':
 
     # Objetos Data Início, Data Fim e Setor
 
-    with col1:
-
-        with st.container():
-
-            col1_1, col1_2 = st.columns(2)
-
-            with col1_1:
-
-                primeiro_dia_mes = pd.to_datetime('today').to_period('M').start_time.date()
-
-                data_ini = st.date_input('Data Início', value=primeiro_dia_mes, format='DD/MM/YYYY', key='data_ini_on')
-
-                mes_ano_ini = pd.to_datetime(data_ini).to_period('M')
-
-            with col1_2:
-
-                ultimo_dia_mes = pd.to_datetime('today').to_period('M').end_time.date()
-                
-                data_fim = st.date_input('Data Fim', value=ultimo_dia_mes, format='DD/MM/YYYY', key='data_fim_on')  
-
-                mes_ano_fim = pd.to_datetime(data_fim).to_period('M')
-
-        seleciona_setor = st.multiselect('Setor', sorted(lista_setor), default=None, key='seleciona_setor')
+    data_ini, data_fim, mes_ano_ini, mes_ano_fim, seleciona_setor = colher_periodo_e_setor(col1)
 
     if len(seleciona_setor)>0:
 
@@ -1408,94 +1806,116 @@ if __name__ == '__main__':
 
         if st.session_state.base_luck=='test_phoenix_natal':
 
-            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_ocupacao_hoteis = filtrar_periodo_dfs_base_luck(
+                data_ini, 
+                data_fim, 
+                mes_ano_ini, 
+                mes_ano_fim
+            )
 
-            df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+        elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_noronha']:
 
-        elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
+            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor = filtrar_periodo_dfs_base_luck(
+                data_ini, 
+                data_fim, 
+                mes_ano_ini, 
+                mes_ano_fim
+            )
 
         elif st.session_state.base_luck == 'test_phoenix_salvador':
 
-            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_metas_vendedor_setor, df_metas_vendedor_canal_vendas = \
-                filtrar_periodo_dfs(data_ini, data_fim, mes_ano_ini, mes_ano_fim)
-
-            df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+            df_vendas, df_paxs_in, df_guias_in, df_metas_vendedor, df_metas_setor, df_metas_vendedor_setor, df_metas_vendedor_canal_vendas = filtrar_periodo_dfs_base_luck(
+                data_ini, 
+                data_fim, 
+                mes_ano_ini, 
+                mes_ano_fim
+            )
 
         df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
 
-        if not '--- Todos ---' in seleciona_setor \
-            and 'Guia' in seleciona_setor \
-            and not 'Transferista' in seleciona_setor \
-            and st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
+        # Filtrando setores selecionados
 
-            lista_setor = seleciona_setor.copy()
-
-            lista_setor.append('Transferista')
-
-            df_vendas = df_vendas[df_vendas['Setor'].isin(lista_setor)]
-
-        elif not '--- Todos ---' in seleciona_setor:
-
-            df_vendas = df_vendas[df_vendas['Setor'].isin(seleciona_setor)]
+        df_vendas = filtrar_setores_selecionados(seleciona_setor, df_vendas)
 
         if len(df_vendas)>0:
 
-            seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros = colher_selecoes_vendedor_canal_hotel(df_vendas, col1)
+            # Colhe as escolhas do usuário
 
-            df_vendas = filtrar_canal_vendedor_hotel_df_vendas(df_vendas, seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros)
+            seleciona_canal, seleciona_vend, seleciona_hotel, filtrar_servicos_terceiros = colher_selecoes_vendedor_canal_hotel(
+                df_vendas, 
+                col1
+            )
+
+            # Filtra os dados de vendas de acordo com as escolhas do usuário
+
+            df_vendas = filtrar_canal_vendedor_hotel_df_vendas(
+                df_vendas, 
+                seleciona_canal, 
+                seleciona_vend, 
+                seleciona_hotel, 
+                filtrar_servicos_terceiros
+            )
+
+            # Gera dataframe de vendas por hotel
 
             df_hotel = gerar_df_hotel(df_vendas)
 
+            # Ajuste de coluna Desconto Global, porque em João Pessoa tem a questão do EXTRA
+
             df_vendas = ajustar_desconto_global(df_vendas)
+
+            # Gerando o dataframe das vendas agrupadas
 
             if st.session_state.base_luck=='test_phoenix_natal':
 
                 df_vendas = ajustar_valor_venda_servicos_guias_com_adicional(df_vendas)
 
-                df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor, df_ocupacao_hoteis)
+                df_vendas_agrupado = gerar_df_vendas_agrupado(
+                    df_vendas, 
+                    df_metas_vendedor, 
+                    df_guias_in, 
+                    df_paxs_in, 
+                    df_metas_setor, 
+                    df_ocupacao_hoteis
+                )
 
             elif st.session_state.base_luck == 'test_phoenix_salvador':
 
-                df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor, df_metas_vendedor_setor=df_metas_vendedor_setor)
+                df_vendas_agrupado = gerar_df_vendas_agrupado(
+                    df_vendas, 
+                    df_metas_vendedor, 
+                    df_guias_in, 
+                    df_paxs_in, 
+                    df_metas_setor, 
+                    df_metas_vendedor_setor=df_metas_vendedor_setor
+                )
 
             else:
 
-                df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_in, df_metas_setor)
+                df_vendas_agrupado = gerar_df_vendas_agrupado(
+                    df_vendas, 
+                    df_metas_vendedor, 
+                    df_guias_in, 
+                    df_paxs_in, 
+                    df_metas_setor
+                )
 
             df_cont_passeio = df_vendas.groupby(['Vendedor', 'Servico'], as_index=False)['Total Paxs'].sum()
 
-            with col2:
-                    
-                col2_1, col2_2 = st.columns([2,5])
-
-                with col2_1:
-
-                    with st.container():
-
-                        soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto, meta_esperada_formatada, perc_alcancado = \
-                            gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado)
-
-                        plotar_quadrados_html('Valor Total Vendido', formatar_moeda(soma_vendas))
-
-                        plotar_quadrados_html('Meta Estimada', meta_esperada_formatada)
-
-                        plotar_quadrados_html('Meta de TM', formatar_moeda(tm_setor_estip))
-
-                        plotar_quadrados_html('Total Descontos', formatar_moeda(total_desconto))
-
-                with col2_2:
-                        
-                    with st.container():
-
-                        plotar_quadrados_html('% Alcancado', perc_alcancado)
-
-                        plotar_quadrados_html('Paxs Recebidos', paxs_recebidos)
-
-                        plotar_quadrados_html('Meta Atingida', formatar_moeda(tm_vendas))
-
-                        plotar_quadrados_html('Media de Descontos', med_desconto)
+            soma_vendas, tm_vendas, tm_setor_estip, total_desconto, paxs_recebidos, med_desconto, meta_esperada_formatada, perc_alcancado = \
+                gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado)
+            
+            plotar_todos_quadrados_html(
+                col2, 
+                soma_vendas, 
+                meta_esperada_formatada, 
+                tm_setor_estip, 
+                total_desconto, 
+                perc_alcancado, 
+                paxs_recebidos, 
+                tm_vendas, 
+                med_desconto
+            )
 
             with col3:
 
@@ -1503,139 +1923,66 @@ if __name__ == '__main__':
 
                 df_estilizado = gerar_df_estilizado(df_vendas_agrupado)
 
-                st.subheader('Vendas por Vendedor')
+                plotar_vendas_por_vendedor(df_estilizado)
 
-                st.dataframe(df_estilizado, hide_index=True, use_container_width=True)
+                if st.session_state.base_luck == 'test_phoenix_salvador':
 
-                if st.session_state.base_luck == 'test_phoenix_salvador' and (len(seleciona_setor)>1 or seleciona_setor[0] == '--- Todos ---'):
+                    i = plotar_vendas_por_vendedor_setor_canal_vendas(
+                        seleciona_setor, 
+                        df_vendas_agrupado, 
+                        row1, 
+                        i, 
+                        df_vendas, 
+                        df_paxs_in, 
+                        df_metas_vendedor, 
+                        df_metas_setor, 
+                        df_metas_vendedor_canal_vendas
+                    )
 
-                    df_estilizado_vendedor_setor = gerar_df_estilizado_vendedor_setor(df_vendas_agrupado)
+                elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_noronha']:
 
-                    with row1[i%2]:
+                    i = plotar_vendas_por_vendedor_setor_canal_vendas(
+                        seleciona_setor, 
+                        df_vendas_agrupado, 
+                        row1, 
+                        i, 
+                        df_vendas, 
+                        df_paxs_in, 
+                        df_metas_vendedor, 
+                        df_metas_setor
+                    )
 
-                        st.subheader('Vendas por Vendedor | Setor')
-
-                        st.dataframe(df_estilizado_vendedor_setor, hide_index=True, use_container_width=True)
-
-                        i+=1
-
-                elif st.session_state.base_luck in ['test_phoenix_salvador', 'test_phoenix_joao_pessoa'] and len(seleciona_setor)==1 and seleciona_setor[0] == 'Vendas Online':
-
-                    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-                        df_metas_vendedor_canal_vendas = pd.DataFrame(columns=df_vendas.columns)
-
-                    df_estilizado_vendedor_canal_vendas = gerar_df_estilizado_vendedor_canal_vendas(df_metas_vendedor_canal_vendas, df_vendas, df_metas_vendedor, df_metas_setor, df_paxs_in)
-
-                    with row1[i%2]:
-
-                        st.subheader('Vendas por Vendedor | Canal de Vendas')
-
-                        st.dataframe(df_estilizado_vendedor_canal_vendas, hide_index=True, use_container_width=True)
-
-                        i+=1
-
-                with row1[i%2]:
-
-                    st.subheader('Vendas por Hotel')
-
-                    df_hotel[['Vendas', 'Desconto Reserva x Serviços']] = df_hotel[['Vendas', 'Desconto Reserva x Serviços']].applymap(formatar_moeda)
-
-                    st.dataframe(df_hotel[['Vendedor', 'Hotel', 'Vendas']], hide_index=True, use_container_width=True)
-
-                    i+=1
+                i = plotar_vendas_por_hotel(row1, i, df_hotel)
                 
                 if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
                     df_setor_agrupado = df_vendas_agrupado[pd.notna(df_vendas_agrupado['Setor'])].groupby('Setor', as_index=False)['Venda_Filtrada'].sum()
 
                     if not df_setor_agrupado.empty:
-
-                        with row1[i%2]:
-
-                            fig = gerar_grafico_todos_setores(df_setor_agrupado)
-
-                            st.plotly_chart(fig)
-
-                            i+=1
+                    
+                        i = plotar_grafico_todos_setores(row1, i, df_setor_agrupado)
 
                         if st.session_state.base_luck == 'test_phoenix_salvador':
-
-                            with row1[i%2]:
-
-                                fig_2 = gerar_grafico_pizza_todos_setores(df_setor_agrupado)
-
-                                st.plotly_chart(fig_2)
-
-                                i+=1
+                        
+                            i = plotar_grafico_pizza_todos_setores(row1, i, df_setor_agrupado)
 
                             df_vendas_vo_cv = gerar_df_vendas_vo_cv(df_vendas)
 
-                            df_setor_vo_cv = df_setor_agrupado[df_setor_agrupado['Setor']!='Vendas Online'].reset_index(drop=True)
-
-                            df_setor_vo_cv = pd.concat([df_setor_vo_cv, df_vendas_vo_cv], ignore_index=True)
-
-                            df_setor_vo_cv = df_setor_vo_cv.sort_values(by='Setor')
-
-                            with row1[i%2]:
-
-                                fig = gerar_grafico_todos_setores(df_setor_vo_cv, 'Valor Total por Setor - Vendas Online Destrinchado')
-
-                                st.plotly_chart(fig)
-
-                                i+=1
-
-                            with row1[i%2]:
-
-                                fig_2 = gerar_grafico_pizza_todos_setores(df_setor_vo_cv, 'Participação % por Setor - Vendas Online Destrinchado')
-
-                                st.plotly_chart(fig_2)
-
-                                i+=1
+                            i = plotar_grafico_todos_setores_vo_destrinchado(df_setor_agrupado, df_vendas_vo_cv, row1, i)
 
                 else:
 
                     if len(seleciona_setor)==1 and seleciona_setor[0]=='Guia':
-                    
-                        df_vendas_grafico = df_vendas_agrupado[(pd.notna(df_vendas_agrupado['Paxs_IN'])) & (df_vendas_agrupado['Paxs_IN']>=20)]
 
-                        with row1[i%2]:
-
-                            fig = gerar_grafico_setor_especifico(df_vendas_grafico)
-
-                            st.plotly_chart(fig)
-
-                            i+=1
+                        i = plotar_grafico_setor_guia(df_vendas_agrupado, row1, i)
 
                     elif len(seleciona_setor)==1 and seleciona_setor[0]=='Vendas Online':
 
-                        with row1[i%2]:
-
-                            fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
-
-                            st.plotly_chart(fig)
-
-                            i+=1
-
-                        with row1[i%2]:
-
-                            df_vendas_vo_cv = gerar_df_vendas_vo_cv(df_vendas)
-
-                            fig_2 = gerar_grafico_pizza_todos_setores(df_vendas_vo_cv)
-
-                            st.plotly_chart(fig_2)
-
-                            i+=1
+                        i = plotar_grafico_setor_vendas_online(df_vendas_agrupado, row1, i, df_vendas) 
 
                     else:
 
-                        with row1[i%2]:
-
-                            fig = gerar_grafico_setor_especifico(df_vendas_agrupado)
-
-                            st.plotly_chart(fig)
-
-                            i+=1
+                        i = plotar_grafico_setor_especifico(df_vendas_agrupado, row1, i)
 
         else:
 
@@ -1645,72 +1992,8 @@ if __name__ == '__main__':
 
     if len(seleciona_setor)==1 and seleciona_setor[0] == '--- Todos ---':
 
-        df_todos_vendedores_filtrado = gerar_df_todos_vendedores_filtrado(df_cont_passeio, st.session_state.passeios_incluidos)
-
-        if st.session_state.base_luck == 'test_phoenix_natal':
-
-            df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Serviços Terceiros'])
-
-            fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_todos_vendedores(df_servicos_casa_vs_terceiros)
-
-        if not df_todos_vendedores_filtrado.empty:
-
-            fig = gerar_grafico_pizza_todos_vendedores(df_todos_vendedores_filtrado, st.session_state.passeios_incluidos)
-
-            if st.session_state.base_luck == 'test_phoenix_natal':
-
-                plotar_graficos_pizza_todos_vendedores(row0, fig, fig_2)
-
-            elif st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
-
-                plotar_graficos_pizza_todos_vendedores(row0, fig)
+        plotar_todos_graficos_pizza_todos_setores(df_cont_passeio, row0)
 
     elif len(seleciona_setor)>0 and len(df_vendas)>0:
 
-        if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_salvador']:
-
-            coluna = 0
-
-            for vendedor in df_cont_passeio['Vendedor'].unique():
-
-                df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
-                
-                if not df_vendedor_filtrado.empty:
-
-                    fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
-
-                    with row0[coluna%2]:
-                
-                        st.plotly_chart(fig)    
-
-                    coluna+=1
-
-        elif st.session_state.base_luck == 'test_phoenix_natal':
-
-            df_servicos_casa_vs_terceiros = gerar_df_servicos_casa_vs_terceiros(df_cont_passeio, ['Vendedor', 'Serviços Terceiros'])
-
-            coluna = 0
-
-            for vendedor in df_cont_passeio['Vendedor'].unique():
-
-                df_vendedor_filtrado = gerar_df_vendedor_filtrado(df_cont_passeio, st.session_state.passeios_incluidos, vendedor)
-
-                df_servicos_casa_vs_terceiros_vendedor = df_servicos_casa_vs_terceiros[df_servicos_casa_vs_terceiros['Vendedor']==vendedor]
-                
-                if not df_vendedor_filtrado.empty:
-
-                    fig = gerar_grafico_pizza_vendedor(df_vendedor_filtrado, vendedor, st.session_state.passeios_incluidos)
-
-                    fig_2 = gerar_grafico_pizza_servicos_terceiros_da_casa_vendedor(df_servicos_casa_vs_terceiros_vendedor, vendedor)
-
-                    with row0[coluna%2]:
-                
-                        st.plotly_chart(fig)
-
-                    coluna+=1
-
-                    with row0[coluna%2]:
-                
-                        st.plotly_chart(fig_2)
-
-                    coluna+=1
+        plotar_todos_graficos_pizza_por_vendedor(df_cont_passeio, row0)
