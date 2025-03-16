@@ -8,7 +8,6 @@ import numpy as np
 from babel.numbers import format_currency
 import plotly.express as px
 import plotly.graph_objects as go
-import locale
 from datetime import date
 import sys
 from pathlib import Path
@@ -87,6 +86,10 @@ def gerar_df_top5_operadora(df_paxs_in):
     elif st.session_state.base_luck == 'test_phoenix_salvador':
 
         df_top5_operadora = df_top5_operadora.query("Parceiro != 'LUCK SALVADOR - PDV'").nlargest(5, 'Total_Paxs')
+
+    elif st.session_state.base_luck == 'test_phoenix_noronha': 
+
+        df_top5_operadora = df_top5_operadora.loc[~df_top5_operadora['Parceiro'].str.contains('ATALAIA', case=False, na=False)].nlargest(5, 'Total_Paxs')
 
     return df_top5_operadora
 
