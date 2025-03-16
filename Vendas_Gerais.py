@@ -196,6 +196,14 @@ def gerar_df_vendas_final():
 
             df_vendas.loc[pd.notna(df_vendas['Canal_de_Vendas']), 'Setor'] = df_vendas['Canal_de_Vendas'].map(dict_setor)
 
+        elif st.session_state.base_luck == 'test_phoenix_noronha':
+
+            df_vendas.loc[
+                (df_vendas['Vendedor'].isin(['LUCAS', 'Renato Apory'])) &
+                (df_vendas['Mes_Ano'] <= pd.Period('2025-03', freq='M')),
+                'Setor'
+            ] = 'Transferista'
+
         df_metas_indexed = st.session_state.df_metas.set_index('Mes_Ano')
 
         df_vendas['Meta'] = df_vendas.apply(lambda row: df_metas_indexed.at[row['Mes_Ano'], row['Setor']] 
@@ -1060,7 +1068,8 @@ def plotar_vendas_por_vendedor_setor_canal_vendas(seleciona_setor, df_vendas_agr
 
         elif st.session_state.base_luck == 'test_phoenix_noronha':
 
-            df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado', 'Servico']]
+            df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado', 'Servico', 
+                                           'Total_Paxs']]
 
             df_estilizado['Meta_Mes'] = np.where(
                 pd.isna(df_estilizado['Meta_Mes']), 
@@ -1076,7 +1085,7 @@ def plotar_vendas_por_vendedor_setor_canal_vendas(seleciona_setor, df_vendas_agr
 
                 df_estilizado['Meta_Mes'] = df_estilizado['Meta_Mes'] / df_estilizado['Servico']
 
-            df_estilizado = df_estilizado.drop(['Meta', 'Servico'], axis=1)
+            df_estilizado = df_estilizado.drop(['Meta', 'Servico', 'Total_Paxs'], axis=1)
 
         else:
 
