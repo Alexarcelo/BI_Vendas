@@ -317,7 +317,15 @@ def colher_periodo_e_setor(col1):
 
         seleciona_setor = st.multiselect('Setor', sorted(lista_setor), default=None, key='seleciona_setor')
 
-    return data_ini, data_fim, mes_ano_ini, mes_ano_fim, seleciona_setor
+        if st.session_state.base_luck=='test_phoenix_noronha':
+
+            base_tm = st.multiselect('Base Ticket Médio', ['Paxs Recebidos', 'Número de Serviços'], default='Paxs Recebidos')
+
+        else:
+
+            base_tm = []
+
+    return data_ini, data_fim, mes_ano_ini, mes_ano_fim, seleciona_setor, base_tm
 
 def filtrar_periodo_dfs_base_luck(data_ini, data_fim, mes_ano_ini, mes_ano_fim):
 
@@ -561,7 +569,13 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_vendedor, df_guias_in, df_paxs_
 
     elif st.session_state.base_luck == 'test_phoenix_noronha':
 
-        df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Total_Paxs']
+        if len(base_tm)==0 or base_tm[0]=='Paxs Recebidos':
+
+            df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Total_Paxs']
+
+        elif base_tm[0]=='Número de Serviços':
+
+            df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Venda_Filtrada'] / df_vendas_agrupado['Servico']
         
         df_vendas_agrupado['Ticket_Medio'] = df_vendas_agrupado['Ticket_Medio'].fillna(0)
 
@@ -661,7 +675,13 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
         else:
 
-            tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
+            if st.session_state.base_luck == 'test_phoenix_noronha' and len(base_tm)>0 and base_tm[0]=='Número de Serviços':
+
+                tm_vendas = soma_vendas / df_vendas_setores_desejados['Servico'].sum()
+
+            else:
+
+                tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
 
             paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
 
@@ -671,10 +691,19 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
             tm_setor_estip = df_setor_meta[df_setor_meta['Setor']!='Transferista']['Meta'].sum()
 
-        elif (st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Vendas Online') \
-            or st.session_state.base_luck == 'test_phoenix_noronha':
+        elif st.session_state.base_luck == 'test_phoenix_natal' and seleciona_setor[0]=='Vendas Online':
 
             tm_setor_estip = df_setor_meta['Meta'].sum() / paxs_recebidos
+
+        elif st.session_state.base_luck == 'test_phoenix_noronha':
+
+            if len(base_tm)>0 and base_tm[0]=='Número de Serviços':
+
+                tm_setor_estip = df_setor_meta['Meta'].sum() / df_vendas_setores_desejados['Servico'].sum()
+
+            else:
+
+                tm_setor_estip = df_setor_meta['Meta'].sum() / paxs_recebidos
 
         else:
 
@@ -695,7 +724,13 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
         med_desconto = gerar_media_descontos(total_desconto, soma_vendas)
 
-        meta_esperada_total = tm_setor_estip*paxs_recebidos
+        if st.session_state.base_luck == 'test_phoenix_noronha' and len(base_tm)>0 and base_tm[0]=='Número de Serviços':
+
+            meta_esperada_total = tm_setor_estip*df_vendas_setores_desejados['Servico'].sum()
+
+        else:
+
+            meta_esperada_total = tm_setor_estip*paxs_recebidos
 
         meta_esperada_formatada = formatar_moeda(meta_esperada_total)
 
@@ -731,11 +766,19 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
         perc_alcancado = f'{round((soma_vendas / meta_esperada_total) * 100, 2)}%'
 
-        tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
-
         paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
 
-        tm_setor_estip = int(meta_esperada_total / paxs_recebidos)
+        if st.session_state.base_luck == 'test_phoenix_noronha' and len(base_tm)>0 and base_tm[0]=='Número de Serviços':
+
+            tm_vendas = soma_vendas / df_vendas_setores_desejados['Servico'].sum()
+
+            tm_setor_estip = int(meta_esperada_total / df_vendas_setores_desejados['Servico'].sum())
+
+        else:
+
+            tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
+
+            tm_setor_estip = int(meta_esperada_total / paxs_recebidos)
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -800,7 +843,9 @@ def gerar_df_estilizado(df_vendas_agrupado):
 
             return [''] * len(row)
 
-    if st.session_state.base_luck == 'test_phoenix_salvador' and len(seleciona_setor)==1 and seleciona_setor[0]=='--- Todos ---':
+    if st.session_state.base_luck == 'test_phoenix_salvador' \
+        and len(seleciona_setor)==1 \
+            and seleciona_setor[0]=='--- Todos ---':
         
         df_estilizado = df_vendas_agrupado.groupby('Vendedor', as_index=False).agg({'Venda_Filtrada': 'sum', 'Ticket_Medio': 'sum', 'Meta_Mes': 'first', 'Meta': 'first', 'Servico': 'sum', 
                                                                                     'Reserva': 'sum', 'Desconto_Global_Ajustado': 'first'})
@@ -811,7 +856,9 @@ def gerar_df_estilizado(df_vendas_agrupado):
         
         df_estilizado = df_estilizado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
 
-    elif st.session_state.base_luck == 'test_phoenix_salvador' and len(seleciona_setor)==1 and seleciona_setor[0]!='--- Todos ---':
+    elif st.session_state.base_luck == 'test_phoenix_salvador' \
+        and len(seleciona_setor)==1 \
+            and seleciona_setor[0]!='--- Todos ---':
 
         df_estilizado = df_vendas_agrupado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta_Vendedor_Setor', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']].copy()
 
@@ -827,7 +874,8 @@ def gerar_df_estilizado(df_vendas_agrupado):
 
         df_estilizado = df_estilizado.drop(['Meta_Vendedor_Setor', 'Meta'], axis=1)
 
-    elif st.session_state.base_luck == 'test_phoenix_salvador' and len(seleciona_setor)>1:
+    elif st.session_state.base_luck == 'test_phoenix_salvador' \
+        and len(seleciona_setor)>1:
 
         df_estilizado = df_vendas_agrupado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta_Vendedor_Setor', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado', 'Reserva', 
                                             'Servico']].copy()
@@ -851,23 +899,52 @@ def gerar_df_estilizado(df_vendas_agrupado):
 
         df_estilizado = df_estilizado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
 
+    elif st.session_state.base_luck == 'test_phoenix_noronha':
+
+        df_estilizado = df_vendas_agrupado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Venda_por_Reserva', 'Desconto_Global_Ajustado', 'Servico']].copy()
+
+        df_estilizado.columns = [
+            'Vendedor', 
+            'Vendas', 
+            'Ticket Médio', 
+            'Meta T.M.', 
+            'Venda por Reserva', 
+            'R$ Descontos',
+            'Servico'
+        ]
+
     else:
 
         df_estilizado = df_vendas_agrupado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']].copy()
 
-        df_estilizado['Meta_Mes'] = df_estilizado['Meta_Mes'].replace(0, None).fillna(df_vendas_agrupado['Meta'])
+        df_estilizado.columns = [
+            'Vendedor', 
+            'Vendas', 
+            'Ticket Médio', 
+            'Meta T.M.', 
+            'Venda por Reserva', 
+            'R$ Descontos',
+        ]
 
-    df_estilizado['% Desconto'] = (df_estilizado['Desconto_Global_Ajustado'] / (df_estilizado['Venda_Filtrada'] + df_estilizado['Desconto_Global_Ajustado']))*100
+    df_estilizado['Meta T.M.'] = df_estilizado['Meta T.M.'].replace(0, None).fillna(df_vendas_agrupado['Meta'])
 
-    df_estilizado['% Desconto'] = df_estilizado['% Desconto'].fillna(0)
+    df_estilizado['% Descontos'] = (df_estilizado['R$ Descontos'] / (df_estilizado['Vendas'] + df_estilizado['R$ Descontos']))*100
+
+    df_estilizado['% Descontos'] = df_estilizado['% Descontos'].fillna(0)
 
     df_estilizado = df_estilizado.drop_duplicates(keep='last')
 
-    df_estilizado.columns = ['Vendedor', 'Vendas', 'Ticket Médio', 'Meta T.M.', 'Venda por Reserva', 'R$ Descontos', '% Descontos']
-
     if st.session_state.base_luck == 'test_phoenix_noronha':
 
-        df_estilizado['Meta T.M.'] = df_estilizado['Meta T.M.'] / paxs_recebidos
+        if len(base_tm)==0 or base_tm[0]=='Paxs Recebidos':
+
+            df_estilizado['Meta T.M.'] = df_estilizado['Meta T.M.'] / paxs_recebidos
+
+        elif base_tm[0]=='Número de Serviços':
+
+            df_estilizado['Meta T.M.'] = df_estilizado['Meta T.M.'] / df_estilizado['Servico']
+
+        df_estilizado.drop('Servico', axis=1, inplace=True)
 
     df_estilizado = df_estilizado.style.apply(highlight_ticket, axis=1)
 
@@ -946,7 +1023,13 @@ def plotar_vendas_por_vendedor_setor_canal_vendas(seleciona_setor, df_vendas_agr
 
         df_estilizado['Venda_por_Reserva'] = df_estilizado['Servico'] / df_estilizado['Reserva']
 
-        df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
+        if len(base_tm)==0 or base_tm[0]=='Paxs Recebidos':
+
+            df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Total_Paxs']
+
+        elif base_tm[0]=='Número de Serviços':
+
+            df_estilizado['Ticket_Medio'] = df_estilizado['Venda_Filtrada'] / df_estilizado['Servico']
 
         df_metas_vendedor_periodo = df_metas_vendedor.groupby('Vendedor', as_index=False)['Meta_Mes'].mean()
 
@@ -974,6 +1057,26 @@ def plotar_vendas_por_vendedor_setor_canal_vendas(seleciona_setor, df_vendas_agr
                 )
             
             df_estilizado = df_estilizado.drop(['Meta_Vendedor_Canal_Vendas', 'Meta'], axis=1)
+
+        elif st.session_state.base_luck == 'test_phoenix_noronha':
+
+            df_estilizado = df_estilizado[['Vendedor', 'Canal_de_Vendas', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Meta', 'Venda_por_Reserva', 'Desconto_Global_Ajustado', 'Servico']]
+
+            df_estilizado['Meta_Mes'] = np.where(
+                pd.isna(df_estilizado['Meta_Mes']), 
+                df_estilizado['Meta'], 
+                df_estilizado['Meta_Mes']
+            )
+
+            if len(base_tm)==0 or base_tm[0]=='Paxs Recebidos':
+
+                df_estilizado['Meta_Mes'] = df_estilizado['Meta_Mes'] / df_estilizado['Total_Paxs']
+
+            elif base_tm[0]=='Número de Serviços':
+
+                df_estilizado['Meta_Mes'] = df_estilizado['Meta_Mes'] / df_estilizado['Servico']
+
+            df_estilizado = df_estilizado.drop(['Meta', 'Servico'], axis=1)
 
         else:
 
@@ -1798,7 +1901,7 @@ if __name__ == '__main__':
 
     # Objetos Data Início, Data Fim e Setor
 
-    data_ini, data_fim, mes_ano_ini, mes_ano_fim, seleciona_setor = colher_periodo_e_setor(col1)
+    data_ini, data_fim, mes_ano_ini, mes_ano_fim, seleciona_setor, base_tm = colher_periodo_e_setor(col1)
 
     if len(seleciona_setor)>0:
 
