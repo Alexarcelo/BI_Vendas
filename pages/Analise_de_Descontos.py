@@ -93,8 +93,7 @@ st.write(f'_Total de Vendas Considerando apenas as Vendas Realizadas - Não cons
 
 st.divider()
 
-lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final'] 
-                                    if item not in st.session_state]
+lista_keys_fora_do_session_state = [item for item in ['df_config', 'df_metas', 'df_vendas_final'] if item not in st.session_state]
 
 if len(lista_keys_fora_do_session_state)>0:
 
@@ -124,13 +123,36 @@ if len(seleciona_ano)>0 and len(seleciona_mes)>0 and len(seleciona_vendedor)>0:
 
     df_filtrado_print = gerar_df_filtrado_print(df_agrupado_descontos)
 
-    st.dataframe(df_filtrado_print[['Reserva', 'Valor_Venda', 'Desconto_Global', '% Desconto', 'Servico', 'Total Paxs', 'TM Reserva']]
-                 .rename(columns={'Reserva': 'Reserva', 'Valor_Venda': 'Total Venda', 'Desconto_Global': 'Total Desconto', 'Servico': 'Passeios Vendidos'}), hide_index=True, 
-                 use_container_width=True)
+    st.dataframe(
+        df_filtrado_print[
+            [
+                'Reserva', 
+                'Valor_Venda', 
+                'Desconto_Global', 
+                '% Desconto', 
+                'Servico', 
+                'Total Paxs', 
+                'TM Reserva'
+            ]
+        ].rename(
+            columns={
+                'Reserva': 'Reserva', 
+                'Valor_Venda': 'Total Venda', 
+                'Desconto_Global': 'Total Desconto', 
+                'Servico': 'Passeios Vendidos'
+            }
+        ), 
+        hide_index=True, 
+        use_container_width=True
+    )
 
     df_individual = gerar_df_individual(df_agrupado_descontos)
 
-    st.dataframe(df_individual, hide_index=True, use_container_width=True)
+    st.dataframe(
+        df_individual, 
+        hide_index=True, 
+        use_container_width=True
+    )
 
 else:
 
