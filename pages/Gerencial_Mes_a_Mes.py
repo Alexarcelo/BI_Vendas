@@ -33,12 +33,6 @@ def gerar_df_ranking():
     st.session_state.df_ranking['Mes'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.month
     
     st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.to_period('M')
-
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        st.session_state.df_ranking['Setor'] = st.session_state.df_ranking['Vendedor'].str.split(' - ').str[1].replace({'OPERACIONAL':'LOGISTICA', 'BASE AEROPORTO ': 'LOGISTICA', 
-                                                                                                                        'BASE AEROPORTO': 'LOGISTICA', 'COORD. ESCALA': 'LOGISTICA', 
-                                                                                                                        'KUARA/MANSEAR': 'LOGISTICA'})
     
     st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total_ADT'] + st.session_state.df_ranking['Total_CHD'] / 2
 
