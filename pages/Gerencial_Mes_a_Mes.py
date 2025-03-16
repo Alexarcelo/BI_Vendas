@@ -22,6 +22,29 @@ def gerar_df_historico():
 
 def gerar_df_ranking():
 
+    def ajustar_nomes_leticia_soraya(df):
+
+        df['Vendedor'] = df['Vendedor'].replace('SORAYA - TRANSFERISTA', 'SORAYA - GUIA')
+
+        df.loc[df['Vendedor']=='SORAYA - GUIA', 'Setor'] = 'Transferista'
+
+        df.loc[(df['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df['Data_Venda']).dt.year>=2025), ['Vendedor', 'Setor']] = ['LETICIA - GUIA', 'Transferista']
+
+        df.loc[(df['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df['Data_Venda']).dt.year<2025), ['Vendedor', 'Setor']] = ['LETICIA - PDV', 'Desks']
+
+        return df
+
+    def ajustar_pdvs_facebook(df):
+
+        mask_ref = (df['Vendedor'].isin(['RAQUEL - PDV', 'VALERIA - PDV', 'ROBERTA - PDV', 'LETICIA - PDV'])) & (pd.to_datetime(df['Data_Venda']).dt.year<2025) & \
+            (df['Canal_de_Vendas']=='Facebook')
+        
+        df.loc[mask_ref, 'Setor'] = 'Guia'
+
+        df.loc[mask_ref, 'Vendedor'] = df.loc[mask_ref, 'Vendedor'].apply(lambda x: x.replace('- PDV', '- GUIA'))
+
+        return df
+
     request_select = '''SELECT * FROM vw_ranking_bi_vendas'''
     
     st.session_state.df_ranking = gerar_df_phoenix(st.session_state.base_luck, request_select)
@@ -35,6 +58,20 @@ def gerar_df_ranking():
     st.session_state.df_ranking['Mes_Ano'] = pd.to_datetime(st.session_state.df_ranking['Data_Execucao']).dt.to_period('M')
     
     st.session_state.df_ranking['Total Paxs'] = st.session_state.df_ranking['Total_ADT'] + st.session_state.df_ranking['Total_CHD'] / 2
+
+    if st.session_state.base_luck == 'test_phoenix_noronha':
+
+        st.session_state.df_ranking.loc[
+            (st.session_state.df_ranking['Vendedor'].isin(['LUCAS', 'Renato Apory'])) &
+            (st.session_state.df_ranking['Mes_Ano'] <= pd.Period('2025-03', freq='M')),
+            'Setor'
+        ] = 'Transferista'
+
+    elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+
+        st.session_state.df_ranking = ajustar_nomes_leticia_soraya(st.session_state.df_ranking)
+
+        st.session_state.df_ranking = ajustar_pdvs_facebook(st.session_state.df_ranking)
 
 def filtrar_periodo_dfs():
 
@@ -347,7 +384,7 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
                 gerar_df_paxs_in()
 
-elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador']:
+elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador', 'test_phoenix_noronha']:
 
     lista_keys_fora_do_session_state = [item for item in ['df_reembolsos', 'df_metas', 'df_config', 'df_vendas_final', 'anos_disponiveis', 'df_ranking', 'df_paxs_in'] 
                                         if item not in st.session_state]
@@ -381,7 +418,7 @@ elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador
             if 'df_paxs_in' in lista_keys_fora_do_session_state:
 
                 gerar_df_paxs_in()
-
+st.session_state.df_ranking
 col1, col2 = st.columns([2, 4])
 
 with col1:
