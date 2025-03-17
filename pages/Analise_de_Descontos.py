@@ -50,12 +50,16 @@ def gerar_df_agrupado_descontos(df_descontos, seleciona_ano, seleciona_mes, sele
 
         df_descontos1.loc[df_descontos1['Servico']=='EXTRA', 'Desconto_Global'] = 0
 
+    df_descontos1['Valor_Reembolso'] = df_descontos1['Valor_Reembolso'].fillna(0)
+
     df_agrupado_descontos = df_descontos1.groupby(['Reserva', 'Vendedor']).agg({'Mes_Ano': 'first', 'Desconto_Global': 'min', 'Valor_Venda': 'sum', 'Servico': 'count', 'Total Paxs': 'max', 
-                                                                                'Setor': 'first'}).reset_index()
+                                                                                'Setor': 'first', 'Valor_Reembolso': 'sum'}).reset_index()
 
     df_agrupado_descontos['Valor_Servico'] = df_agrupado_descontos['Valor_Venda'] + df_agrupado_descontos['Desconto_Global']
 
     df_agrupado_descontos['% Desconto'] = df_agrupado_descontos.apply(lambda row: f"{round((row['Desconto_Global'] / row['Valor_Servico']) * 100, 2)}%", axis=1)
+
+    df_agrupado_descontos['% Reembolso'] = df_agrupado_descontos.apply(lambda row: f"{round((row['Valor_Reembolso'] / row['Valor_Servico']) * 100, 2)}%", axis=1)
 
     df_agrupado_descontos['TM Reserva'] = df_agrupado_descontos['Valor_Venda'] / df_agrupado_descontos['Total Paxs']
 
@@ -77,9 +81,19 @@ def gerar_df_filtrado_print(df_agrupado_descontos):
 
 def gerar_df_individual(df_agrupado_descontos):
 
-    df_individual = df_agrupado_descontos.groupby(['Vendedor']).agg({'Valor_Venda': 'sum', 'Valor_Servico': 'sum', 'Total Paxs': 'sum', 'Desconto_Global': 'sum',}).reset_index()
+    df_individual = df_agrupado_descontos.groupby(['Vendedor']).agg(
+        {
+            'Valor_Venda': 'sum', 
+            'Valor_Servico': 'sum', 
+            'Total Paxs': 'sum', 
+            'Desconto_Global': 'sum', 
+            'Valor_Reembolso': 'sum'
+        }
+    ).reset_index()
 
     df_individual['% Desconto'] = df_individual.apply(lambda row: f"{round((row['Desconto_Global'] / row['Valor_Servico']) * 100, 2)}%", axis=1)
+
+    df_individual['% Reembolso'] = df_individual.apply(lambda row: f"{round((row['Valor_Reembolso'] / row['Valor_Servico']) * 100, 2)}%", axis=1)
 
     return df_individual
 
@@ -87,7 +101,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from Vendas_Gerais import puxar_df_config, gerar_df_metas, gerar_df_vendas_final
 
-st.title('Descontos')
+st.title('Descontos e Reembolsos')
 
 st.write(f'_Total de Vendas Considerando apenas as Vendas Realizadas - Não considerando os reembolsos_')
 
@@ -129,7 +143,9 @@ if len(seleciona_ano)>0 and len(seleciona_mes)>0 and len(seleciona_vendedor)>0:
                 'Reserva', 
                 'Valor_Venda', 
                 'Desconto_Global', 
-                '% Desconto', 
+                '% Desconto',
+                'Valor_Reembolso', 
+                '% Reembolso',
                 'Servico', 
                 'Total Paxs', 
                 'TM Reserva'
@@ -139,7 +155,8 @@ if len(seleciona_ano)>0 and len(seleciona_mes)>0 and len(seleciona_vendedor)>0:
                 'Reserva': 'Reserva', 
                 'Valor_Venda': 'Total Venda', 
                 'Desconto_Global': 'Total Desconto', 
-                'Servico': 'Passeios Vendidos'
+                'Servico': 'Passeios Vendidos',
+                'Valor_Reembolso': 'Total Reembolso',
             }
         ), 
         hide_index=True, 
@@ -149,7 +166,14 @@ if len(seleciona_ano)>0 and len(seleciona_mes)>0 and len(seleciona_vendedor)>0:
     df_individual = gerar_df_individual(df_agrupado_descontos)
 
     st.dataframe(
-        df_individual, 
+        df_individual.rename(
+            columns={
+                'Valor_Venda': 'Total Venda c/ Desconto', 
+                'Valor_Servico': 'Total Venda s/ Desconto', 
+                'Desconto_Global': 'Total Desconto', 
+                'Valor_Reembolso': 'Total Reembolso'
+            }
+        ), 
         hide_index=True, 
         use_container_width=True
     )
