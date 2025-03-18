@@ -45,29 +45,6 @@ def gerar_df_paxs_mes():
 
 def gerar_df_ranking():
 
-    def ajustar_nomes_leticia_soraya(df):
-
-        df['Vendedor'] = df['Vendedor'].replace('SORAYA - TRANSFERISTA', 'SORAYA - GUIA')
-
-        df.loc[df['Vendedor']=='SORAYA - GUIA', 'Setor'] = 'Transferista'
-
-        df.loc[(df['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df['Data_Venda']).dt.year>=2025), ['Vendedor', 'Setor']] = ['LETICIA - GUIA', 'Transferista']
-
-        df.loc[(df['Vendedor']=='LETICIA - TRANSFERISTA') & (pd.to_datetime(df['Data_Venda']).dt.year<2025), ['Vendedor', 'Setor']] = ['LETICIA - PDV', 'Desks']
-
-        return df
-
-    def ajustar_pdvs_facebook(df):
-
-        mask_ref = (df['Vendedor'].isin(['RAQUEL - PDV', 'VALERIA - PDV', 'ROBERTA - PDV', 'LETICIA - PDV'])) & (pd.to_datetime(df['Data_Venda']).dt.year<2025) & \
-            (df['Canal_de_Vendas']=='Facebook')
-        
-        df.loc[mask_ref, 'Setor'] = 'Guia'
-
-        df.loc[mask_ref, 'Vendedor'] = df.loc[mask_ref, 'Vendedor'].apply(lambda x: x.replace('- PDV', '- GUIA'))
-
-        return df
-
     request_select = '''SELECT * FROM vw_ranking_bi_vendas'''
     
     st.session_state.df_ranking = gerar_df_phoenix(st.session_state.base_luck, request_select)
@@ -89,12 +66,6 @@ def gerar_df_ranking():
             (st.session_state.df_ranking['Mes_Ano'] <= pd.Period('2025-03', freq='M')),
             'Setor'
         ] = 'Transferista'
-
-    elif st.session_state.base_luck == 'test_phoenix_joao_pessoa':
-
-        st.session_state.df_ranking = ajustar_nomes_leticia_soraya(st.session_state.df_ranking)
-
-        st.session_state.df_ranking = ajustar_pdvs_facebook(st.session_state.df_ranking)
 
 def gerar_df_vendas(df_paxs_mes, df_guias_in, df_ocupacao_hoteis=None):
 
@@ -549,9 +520,15 @@ def plotar_graficos_e_tabelas_meta_mes():
 
         df_filtrado_print = df_filtrado_print[df_filtrado_print['Vendedor'] == vendedor]
 
-        df_filtrado_print = df_filtrado_print.rename(columns={'Venda_Filtrada': 'Venda Filtrada', 'Venda_Esperada': 'Venda Esperada'})
+        df_filtrado_print = df_filtrado_print.rename(
+            columns={
+                'Venda_Filtrada': 'Venda Filtrada', 
+                'Venda_Esperada': 'Venda Esperada', 
+                'Mes_Nome': 'Mês'
+            }
+        )
 
-        df_filtrado_print = df_filtrado_print[['Vendedor', 'Venda Filtrada', 'Venda Esperada', 'Falta p/ Meta']]
+        df_filtrado_print = df_filtrado_print[['Mês', 'Vendedor', 'Venda Filtrada', 'Venda Esperada', 'Falta p/ Meta']]
 
         df_filtrado_print = df_filtrado_print.style.apply(formatar_condicional, axis=1)
 
