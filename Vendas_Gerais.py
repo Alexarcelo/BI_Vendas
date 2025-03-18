@@ -774,15 +774,31 @@ def gerar_soma_vendas_tm_vendas_desconto_paxs_recebidos(df_vendas_agrupado):
 
         perc_alcancado = f'{round((soma_vendas / meta_esperada_total) * 100, 2)}%'
 
-        paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
+        if (
+            st.session_state.base_luck == 'test_phoenix_natal' 
+            and 'Guia' in seleciona_setor 
+            and 'Transferista' in seleciona_setor
+            and len(seleciona_setor)==2
+        ):
+            
+            paxs_recebidos = int(df_vendas_setores_desejados['Paxs_Ref_TM'].sum())
 
-        if st.session_state.base_luck == 'test_phoenix_noronha' and len(base_tm)>0 and base_tm[0]=='Número de Serviços':
+            tm_vendas = soma_vendas / paxs_recebidos
+
+            tm_setor_estip = int(meta_esperada_total / paxs_recebidos)
+            
+        elif (
+            st.session_state.base_luck == 'test_phoenix_noronha' 
+            and len(base_tm)>0 and base_tm[0]=='Número de Serviços'
+        ):
 
             tm_vendas = soma_vendas / df_vendas_setores_desejados['Servico'].sum()
 
             tm_setor_estip = int(meta_esperada_total / df_vendas_setores_desejados['Servico'].sum())
 
         else:
+
+            paxs_recebidos = int(df_vendas_setores_desejados['Total_Paxs'].mean())
 
             tm_vendas = soma_vendas / df_vendas_setores_desejados['Total_Paxs'].mean()
 
