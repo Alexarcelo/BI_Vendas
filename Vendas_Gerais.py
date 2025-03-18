@@ -864,6 +864,15 @@ def gerar_df_estilizado(df_vendas_agrupado):
         
         df_estilizado = df_estilizado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
 
+        df_estilizado.columns = [
+            'Vendedor', 
+            'Vendas', 
+            'Ticket Médio', 
+            'Meta T.M.', 
+            'Venda por Reserva', 
+            'R$ Descontos',
+        ]
+
     elif st.session_state.base_luck == 'test_phoenix_salvador' \
         and len(seleciona_setor)==1 \
             and seleciona_setor[0]!='--- Todos ---':
@@ -881,6 +890,15 @@ def gerar_df_estilizado(df_vendas_agrupado):
             )
 
         df_estilizado = df_estilizado.drop(['Meta_Vendedor_Setor', 'Meta'], axis=1)
+
+        df_estilizado.columns = [
+            'Vendedor', 
+            'Vendas', 
+            'Ticket Médio', 
+            'Meta T.M.', 
+            'Venda por Reserva', 
+            'R$ Descontos',
+        ]
 
     elif st.session_state.base_luck == 'test_phoenix_salvador' \
         and len(seleciona_setor)>1:
@@ -906,6 +924,15 @@ def gerar_df_estilizado(df_vendas_agrupado):
         df_estilizado['Venda_por_Reserva'] = df_estilizado['Servico'] / df_estilizado['Reserva']
 
         df_estilizado = df_estilizado[['Vendedor', 'Venda_Filtrada', 'Ticket_Medio', 'Meta_Mes', 'Venda_por_Reserva', 'Desconto_Global_Ajustado']]
+
+        df_estilizado.columns = [
+            'Vendedor', 
+            'Vendas', 
+            'Ticket Médio', 
+            'Meta T.M.', 
+            'Venda por Reserva', 
+            'R$ Descontos',
+        ]
 
     elif st.session_state.base_luck == 'test_phoenix_noronha':
 
