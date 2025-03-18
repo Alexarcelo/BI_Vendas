@@ -30,6 +30,8 @@ def colher_selecao_ano_mes_vendedor(df_descontos):
 
     lista_vendedor = sorted(df_descontos['Vendedor'].unique().tolist())
 
+    lista_vendedor.insert(0, '--- Todos ---')
+
     seleciona_ano = st.multiselect('Selecione o Ano', options=lista_anos, default=[], key='reemb_0001')
 
     seleciona_mes = st.multiselect('Selecione o Mes', options=lista_mes, default=[], key='reemb_0002')
@@ -44,7 +46,13 @@ def formatar_moeda(valor):
 
 def gerar_df_agrupado_descontos(df_descontos, seleciona_ano, seleciona_mes, seleciona_vendedor):
 
-    df_descontos1 = df_descontos[(df_descontos['Ano'].isin(seleciona_ano)) & (df_descontos['Mes_Nome'].isin(seleciona_mes)) & (df_descontos['Vendedor'].isin(seleciona_vendedor))]
+    if seleciona_vendedor == ['--- Todos ---']:
+
+        df_descontos1 = df_descontos[(df_descontos['Ano'].isin(seleciona_ano)) & (df_descontos['Mes_Nome'].isin(seleciona_mes))]
+
+    else:
+        
+        df_descontos1 = df_descontos[(df_descontos['Ano'].isin(seleciona_ano)) & (df_descontos['Mes_Nome'].isin(seleciona_mes)) & (df_descontos['Vendedor'].isin(seleciona_vendedor))]
 
     if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
@@ -79,17 +87,29 @@ def gerar_df_filtrado_print(df_agrupado_descontos):
 
     return df_filtrado_print
 
-def gerar_df_individual(df_agrupado_descontos):
+def gerar_df_individual(df_agrupado_descontos, seleciona_vendedor):
 
-    df_individual = df_agrupado_descontos.groupby(['Vendedor']).agg(
-        {
+    if seleciona_vendedor == ['--- Todos ---']:
+        
+        df_individual = df_agrupado_descontos.agg({
             'Valor_Venda': 'sum', 
             'Valor_Servico': 'sum', 
             'Total Paxs': 'sum', 
             'Desconto_Global': 'sum', 
             'Valor_Reembolso': 'sum'
-        }
-    ).reset_index()
+        }).to_frame().T
+
+    else:
+
+        df_individual = df_agrupado_descontos.groupby(['Vendedor']).agg(
+            {
+                'Valor_Venda': 'sum', 
+                'Valor_Servico': 'sum', 
+                'Total Paxs': 'sum', 
+                'Desconto_Global': 'sum', 
+                'Valor_Reembolso': 'sum'
+            }
+        ).reset_index()
 
     df_individual['% Desconto'] = df_individual.apply(lambda row: f"{round((row['Desconto_Global'] / row['Valor_Servico']) * 100, 2)}%", axis=1)
 
@@ -163,7 +183,7 @@ if len(seleciona_ano)>0 and len(seleciona_mes)>0 and len(seleciona_vendedor)>0:
         use_container_width=True
     )
 
-    df_individual = gerar_df_individual(df_agrupado_descontos)
+    df_individual = gerar_df_individual(df_agrupado_descontos, seleciona_vendedor)
 
     st.dataframe(
         df_individual.rename(
