@@ -1698,7 +1698,7 @@ def ajustar_valor_venda_servicos_guias_com_adicional(df_vendas):
 
         st.dataframe(df_adicionais_nao_tarifados, hide_index=True)
 
-    mask_servicos_guias_com_adicional = (pd.notna(df_vendas['Adicional'])) & (df_vendas['Setor']=='Guia')
+    mask_servicos_guias_com_adicional = (pd.notna(df_vendas['Adicional'])) & (df_vendas['Setor'].isin(['Guia', 'Transferista']))
 
     df_vendas['Valor Adicional Total'] = df_vendas['Valor Adicional Adt']*df_vendas['Total_ADT']+df_vendas['Valor Adicional Chd']*df_vendas['Total_CHD']
 
