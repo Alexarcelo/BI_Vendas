@@ -360,64 +360,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from Vendas_Gerais import puxar_aba_simples, tratar_colunas_numero_df, gerar_df_metas, gerar_df_vendas_final, gerar_df_paxs_in, puxar_df_config
 
 st.title('Gerencial - Ano a Ano')
-# st.session_state.lista_colunas_numero_df_metas_vendedor = [
-#     'Ano', 
-#     'Mes', 
-#     'Meta_Mes'
-# ]
-
-# st.session_state.lista_colunas_numero_df_config = ['Valor Parâmetro']
-
-# st.session_state.lista_colunas_numero_df_vendas_manuais = [
-#     'Valor_Venda', 
-#     'Desconto_Global_Por_Servico', 
-#     'Total_ADT', 
-#     'Total_CHD'
-# ]
-
-# st.session_state.lista_colunas_data_df_vendas_manuais = ['Data_Venda']
-
-# st.session_state.meses_disponiveis = {
-#     'Janeiro': 1, 
-#     'Fevereiro': 2, 
-#     'Março': 3, 
-#     'Abril': 4, 
-#     'Maio': 5, 
-#     'Junho': 6, 
-#     'Julho': 7, 
-#     'Agosto': 8, 
-#     'Setembro': 9, 
-#     'Outubro': 10, 
-#     'Novembro': 11, 
-#     'Dezembro': 12
-# }
-
-# st.session_state.meses_ingles_portugues = {
-#     'January': 'Janeiro', 
-#     'February': 'Fevereiro', 
-#     'March': 'Março', 
-#     'April': 'Abril', 
-#     'May': 'Maio', 
-#     'June': 'Junho', 
-#     'July': 'Julho', 
-#     'August': 'Agosto', 
-#     'September': 'Setembro', 
-#     'October': 'Outubro', 
-#     'November': 'Novembro', 
-#     'December': 'Dezembro'
-# }
-
-# st.session_state.base_luck = 'test_phoenix_recife'
-
-# st.session_state.id_gsheet_metas_vendas = '1KXN5LOIm1w4gauBmKr_HW5bhVdKPNoMgs1f9gxo1bes'
-
-# st.session_state.lista_colunas_numero_df_historico = [
-#     'Ano', 
-#     'Mes', 
-#     'Valor_Venda', 
-#     'Paxs ADT', 
-#     'Paxs CHD'
-# ]
 
 st.divider()
 
