@@ -91,6 +91,10 @@ def gerar_df_top5_operadora(df_paxs_in):
 
         df_top5_operadora = df_top5_operadora.loc[~df_top5_operadora['Parceiro'].str.contains('ATALAIA', case=False, na=False)].nlargest(5, 'Total_Paxs')
 
+    elif st.session_state.base_luck == 'test_phoenix_recife':
+
+        df_top5_operadora = df_top5_operadora.query("Parceiro != 'LUCK RECIFE - PDV'").nlargest(5, 'Total_Paxs')
+
     return df_top5_operadora
 
 def grafico_linha(lista_operadoras, df):
