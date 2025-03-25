@@ -75,31 +75,68 @@ def gerar_df_ranking():
 
 def filtrar_periodo_dfs():
 
-    df_vendas = st.session_state.df_vendas_final[(st.session_state.df_vendas_final['Ano'].isin(ano_selecao)) & 
-                                                 (st.session_state.df_vendas_final['Mes'].isin(st.session_state.mes_selecao_valores))].reset_index(drop=True)
+    df_vendas = st.session_state.df_vendas_final[
+        (st.session_state.df_vendas_final['Ano'].isin(ano_selecao)) & 
+        (st.session_state.df_vendas_final['Mes'].isin(st.session_state.mes_selecao_valores))
+    ].reset_index(drop=True)
 
-    df_paxs_in = st.session_state.df_paxs_in[(st.session_state.df_paxs_in['Ano'].isin(ano_selecao)) & 
-                                             (st.session_state.df_paxs_in['Mes'].isin(st.session_state.mes_selecao_valores))].reset_index(drop=True)
+    df_paxs_in = st.session_state.df_paxs_in[
+        (st.session_state.df_paxs_in['Ano'].isin(ano_selecao)) & 
+        (st.session_state.df_paxs_in['Mes'].isin(st.session_state.mes_selecao_valores))
+    ].reset_index(drop=True)
     
-    df_ranking = st.session_state.df_ranking[(st.session_state.df_ranking['Ano'].isin(ano_selecao)) & 
-                                             (st.session_state.df_ranking['Mes'].isin(st.session_state.mes_selecao_valores))].reset_index(drop=True)
+    df_ranking = st.session_state.df_ranking[
+        (st.session_state.df_ranking['Ano'].isin(ano_selecao)) & 
+        (st.session_state.df_ranking['Mes'].isin(st.session_state.mes_selecao_valores))
+    ].reset_index(drop=True)
     
-    if st.session_state.base_luck =='test_phoenix_joao_pessoa':
+    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_recife']:
 
-        df_historico = st.session_state.df_historico[(st.session_state.df_historico['Ano'].isin(ano_selecao)) & 
-                                                     (st.session_state.df_historico['Mes'].isin(st.session_state.mes_selecao_valores))].reset_index(drop=True)
+        df_historico = st.session_state.df_historico[
+            (st.session_state.df_historico['Ano'].isin(ano_selecao)) & 
+            (st.session_state.df_historico['Mes'].isin(st.session_state.mes_selecao_valores))
+        ].reset_index(drop=True)
 
         return df_vendas, df_paxs_in, df_historico, df_ranking
     
     else:
 
         return df_vendas, df_paxs_in, df_ranking
+    
+def juntar_servicos_com_nomenclaturas_diferentes(df):
+
+    dict_alterar_nomes_servicos = dict(zip(st.session_state.df_juntar_servicos['Serviço'], st.session_state.df_juntar_servicos['Serviço Principal']))
+    
+    df['Servico'] = df['Servico'].replace(dict_alterar_nomes_servicos)
+
+    return df
 
 def adicionar_historico_de_vendas(df_historico, df_vendas):
 
     df_historico = df_historico.rename(columns={'Data': 'Data_Venda', 'Paxs ADT': 'Total_Paxs'})
 
-    df_vendas = pd.concat([df_vendas, df_historico[['Ano', 'Mes', 'Setor', 'Valor_Venda', 'Total_Paxs', 'Mes_Ano']]], ignore_index=True)
+    if st.session_state.base_luck == 'test_phoenix_recife':
+
+        df_vendas = df_vendas[
+            df_vendas['Mes_Ano'] != '2024-06'
+        ]
+
+    df_vendas = pd.concat(
+        [
+            df_vendas, 
+            df_historico[
+                [
+                    'Ano', 
+                    'Mes', 
+                    'Setor', 
+                    'Valor_Venda', 
+                    'Total_Paxs', 
+                    'Mes_Ano'
+                ]
+            ]
+        ], 
+        ignore_index=True
+    )
 
     return df_vendas, df_historico
 
@@ -107,7 +144,10 @@ def calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_a
 
     total_paxs_in = df_paxs_in['Total_Paxs'].sum()
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    if st.session_state.base_luck in [
+        'test_phoenix_joao_pessoa', 
+        'test_phoenix_salvador'
+    ]:
 
         total_paxs_desc = df_metas_setor['Paxs_Desc'].sum()
 
@@ -129,9 +169,27 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_setor, df_paxs_in):
 
         return df_vendas_agrupado
 
-    df_vendas_agrupado = df_vendas.groupby(['Vendedor', 'Setor', 'Mes_Ano'], dropna=False, as_index=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Ajustado': 'sum'})
+    df_vendas_agrupado = df_vendas.groupby(
+        [
+            'Vendedor', 
+            'Setor', 
+            'Mes_Ano'
+        ], 
+        dropna=False, 
+        as_index=False
+    ).agg(
+        {
+            'Valor_Venda': 'sum', 
+            'Valor_Reembolso': 'sum', 
+            'Desconto_Global_Ajustado': 'sum'
+        }
+    )
 
-    df_vendas_agrupado = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado)
+    df_vendas_agrupado = calculando_soma_total_paxs_paxs_desc(
+        df_paxs_in, 
+        df_metas_setor, 
+        df_vendas_agrupado
+    )
 
     df_vendas_agrupado = calculando_ordenando_venda_liquida_reembolsos(df_vendas_agrupado)
 
@@ -139,7 +197,15 @@ def gerar_df_vendas_agrupado(df_vendas, df_metas_setor, df_paxs_in):
 
 def gerar_df_vendas_agrupado_setor(df_vendas_agrupado):
 
-    df_vendas_agrupado_setor = df_vendas_agrupado.groupby('Setor', as_index=False).agg({'Venda_Filtrada': 'sum','Total_Paxs': 'mean'})
+    df_vendas_agrupado_setor = df_vendas_agrupado.groupby(
+        'Setor', 
+        as_index=False
+    ).agg(
+        {
+            'Venda_Filtrada': 'sum',
+            'Total_Paxs': 'mean'
+        }
+    )
 
     df_vendas_agrupado_setor = df_vendas_agrupado_setor.sort_values(by='Venda_Filtrada', ascending=False)
 
@@ -196,13 +262,36 @@ def gerar_grafico_valor_total_setor(df_vendas_agrupado_setor):
 
 def gerar_df_vendas_agrupado_mes_setor(df_vendas, df_metas_setor):
 
-    df_vendas_agrupado_mes = df_vendas.groupby(['Mes_Ano', 'Vendedor', 'Setor'], dropna=False).agg({'Valor_Venda': 'sum', 'Valor_Reembolso': 'sum', 'Desconto_Global_Ajustado': 'sum'}).reset_index()
+    df_vendas_agrupado_mes = df_vendas.groupby(
+        [
+            'Mes_Ano', 
+            'Vendedor', 
+            'Setor'
+        ], 
+        dropna=False
+    ).agg(
+        {
+            'Valor_Venda': 'sum', 
+            'Valor_Reembolso': 'sum', 
+            'Desconto_Global_Ajustado': 'sum'
+        }
+    ).reset_index()
 
-    df_vendas_agrupado_mes = calculando_soma_total_paxs_paxs_desc(df_paxs_in, df_metas_setor, df_vendas_agrupado_mes)
+    df_vendas_agrupado_mes = calculando_soma_total_paxs_paxs_desc(
+        df_paxs_in, 
+        df_metas_setor, 
+        df_vendas_agrupado_mes
+    )
 
     df_vendas_agrupado_mes['Venda_Filtrada'] = df_vendas_agrupado_mes['Valor_Venda'].fillna(0) - df_vendas_agrupado_mes['Valor_Reembolso'].fillna(0)
 
-    df_vendas_agrupado_mes_setor = df_vendas_agrupado_mes.groupby(['Mes_Ano', 'Setor'], as_index=False).agg({'Venda_Filtrada': 'sum'})
+    df_vendas_agrupado_mes_setor = df_vendas_agrupado_mes.groupby(
+        [
+            'Mes_Ano', 
+            'Setor'
+        ], 
+        as_index=False
+    ).agg({'Venda_Filtrada': 'sum'})
 
     df_vendas_agrupado_mes_setor['Mes_Ano'] = df_vendas_agrupado_mes_setor['Mes_Ano'].dt.strftime('%B %Y').replace(st.session_state.meses_ingles_portugues, regex=True)
 
@@ -228,7 +317,14 @@ def gerar_rankings_filtrados_geral(df_ranking, passeios_incluidos):
 
     def gerar_ranking_filtrado_combo_setores(df_ranking):
 
-        ranking_filtrado_combo = df_ranking.groupby(['Setor', 'Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
+        ranking_filtrado_combo = df_ranking.groupby(
+            [
+                'Setor', 
+                'Servico', 
+                'Mes_Ano'
+            ], 
+            as_index=False
+        )['Total Paxs'].sum()
 
         ranking_filtrado_combo_setores = ranking_filtrado_combo[pd.notna(ranking_filtrado_combo['Setor'])]
 
@@ -238,7 +334,14 @@ def gerar_rankings_filtrados_geral(df_ranking, passeios_incluidos):
 
         ranking_filtrado = df_ranking[df_ranking['Servico'].isin(passeios_incluidos)]
 
-        ranking_filtrado = ranking_filtrado.groupby(['Setor', 'Servico', 'Mes_Ano'], as_index=False)['Total Paxs'].sum()
+        ranking_filtrado = ranking_filtrado.groupby(
+            [
+                'Setor', 
+                'Servico', 
+                'Mes_Ano'
+            ], 
+            as_index=False
+        )['Total Paxs'].sum()
 
         return ranking_filtrado
     
@@ -345,10 +448,22 @@ st.title('Gerencial - Mês a Mês')
 
 st.divider()
 
-if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+if st.session_state.base_luck in [
+    'test_phoenix_joao_pessoa', 
+    'test_phoenix_recife'
+]:
 
-    lista_keys_fora_do_session_state = [item for item in ['df_reembolsos', 'df_metas', 'df_config', 'df_historico', 'df_vendas_final', 'anos_disponiveis', 'df_ranking', 'df_paxs_in'] 
-                                        if item not in st.session_state]
+    lista_keys_fora_do_session_state = [
+        item for item in [
+            'df_metas', 
+            'df_config', 
+            'df_historico', 
+            'df_vendas_final', 
+            'anos_disponiveis', 
+            'df_ranking', 
+            'df_paxs_in'
+        ] if item not in st.session_state
+    ]
 
     if len(lista_keys_fora_do_session_state)>0:
 
@@ -365,6 +480,16 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
             if 'df_historico' in lista_keys_fora_do_session_state:
 
                 gerar_df_historico()
+
+            if st.session_state.base_luck == 'test_phoenix_recife':
+
+                if 'df_juntar_servicos' in lista_keys_fora_do_session_state:
+
+                    puxar_aba_simples(
+                        st.session_state.id_gsheet_metas_vendas, 
+                        'Juntar Serviços', 
+                        'df_juntar_servicos'
+                    )
 
         with st.spinner('Puxando dados do Phoenix...'):
 
@@ -384,10 +509,22 @@ if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
 
                 gerar_df_paxs_in()
 
-elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador', 'test_phoenix_noronha']:
+elif st.session_state.base_luck in [
+    'test_phoenix_natal', 
+    'test_phoenix_salvador', 
+    'test_phoenix_noronha'
+]:
 
-    lista_keys_fora_do_session_state = [item for item in ['df_reembolsos', 'df_metas', 'df_config', 'df_vendas_final', 'anos_disponiveis', 'df_ranking', 'df_paxs_in'] 
-                                        if item not in st.session_state]
+    lista_keys_fora_do_session_state = [
+        item for item in [
+            'df_metas', 
+            'df_config', 
+            'df_vendas_final', 
+            'anos_disponiveis', 
+            'df_ranking', 
+            'df_paxs_in'
+        ] if item not in st.session_state
+    ]
 
     if len(lista_keys_fora_do_session_state)>0:
 
@@ -400,6 +537,16 @@ elif st.session_state.base_luck in ['test_phoenix_natal', 'test_phoenix_salvador
             if 'df_config' in lista_keys_fora_do_session_state:
 
                 puxar_df_config()
+
+            if st.session_state.base_luck != 'test_phoenix_noronha':
+
+                if 'df_juntar_servicos' in lista_keys_fora_do_session_state:
+
+                    puxar_aba_simples(
+                        st.session_state.id_gsheet_metas_vendas, 
+                        'Juntar Serviços', 
+                        'df_juntar_servicos'
+                    )
 
         with st.spinner('Puxando vendas, ranking, guias IN e paxs IN do Phoenix...'):
 
@@ -423,29 +570,52 @@ col1, col2 = st.columns([2, 4])
 
 with col1:
 
-    ano_selecao = st.multiselect('Selecione o Ano:', st.session_state.anos_disponiveis, default=[date.today().year], key='ano_selecao')
+    ano_selecao = st.multiselect(
+        'Selecione o Ano:', 
+        st.session_state.anos_disponiveis, 
+        default=[date.today().year], 
+        key='ano_selecao'
+    )
 
 with col2:
 
-    mes_selecao = st.multiselect('Selecione o Mês:', st.session_state.meses_disponiveis.keys(), default=list(st.session_state.meses_disponiveis.keys())[:date.today().month], key='mes_selecao')
+    mes_selecao = st.multiselect(
+        'Selecione o Mês:', 
+        st.session_state.meses_disponiveis.keys(), 
+        default=list(st.session_state.meses_disponiveis.keys())[:date.today().month], 
+        key='mes_selecao'
+    )
 
     st.session_state.mes_selecao_valores = [st.session_state.meses_disponiveis[mes] for mes in mes_selecao]
 
 if len(ano_selecao)>0 and len(mes_selecao)>0:
 
-    if st.session_state.base_luck == 'test_phoenix_joao_pessoa':
+    if st.session_state.base_luck in ['test_phoenix_joao_pessoa', 'test_phoenix_recife']:
 
         df_vendas, df_paxs_in, df_historico, df_ranking = filtrar_periodo_dfs()
 
-        df_vendas, df_historico = adicionar_historico_de_vendas(df_historico, df_vendas)
+        df_vendas, df_historico = adicionar_historico_de_vendas(
+            df_historico, 
+            df_vendas
+        )
 
     else:
 
         df_vendas, df_paxs_in, df_ranking = filtrar_periodo_dfs()
 
+    if 'df_juntar_servicos' in st.session_state:
+
+        df_vendas = juntar_servicos_com_nomenclaturas_diferentes(df_vendas)
+
+        df_ranking = juntar_servicos_com_nomenclaturas_diferentes(df_ranking)
+
     df_vendas = ajustar_desconto_global(df_vendas)
 
-    df_vendas_agrupado = gerar_df_vendas_agrupado(df_vendas, st.session_state.df_metas, df_paxs_in)
+    df_vendas_agrupado = gerar_df_vendas_agrupado(
+        df_vendas, 
+        st.session_state.df_metas, 
+        df_paxs_in
+    )
 
     df_vendas_agrupado_setor = gerar_df_vendas_agrupado_setor(df_vendas_agrupado)
 
@@ -453,25 +623,41 @@ if len(ano_selecao)>0 and len(mes_selecao)>0:
 
     st.plotly_chart(fig)
 
-    df_vendas_agrupado_mes_setor = gerar_df_vendas_agrupado_mes_setor(df_vendas, st.session_state.df_metas)
+    df_vendas_agrupado_mes_setor = gerar_df_vendas_agrupado_mes_setor(
+        df_vendas, 
+        st.session_state.df_metas
+    )
 
     st.title('Fatias de Vendas por Setor')
 
     colunas = st.columns(2)
 
-    plotar_graficos_pizza_vendas_setor_mes(df_vendas_agrupado_mes_setor, colunas)
+    plotar_graficos_pizza_vendas_setor_mes(
+        df_vendas_agrupado_mes_setor, 
+        colunas
+    )
 
     st.title('Desempenho Passeios Geral')
 
-    ranking_filtrado_combo_setores, ranking_filtrado_setores, ranking_filtrado_geral, mes_ranking_geral = gerar_rankings_filtrados_geral(df_ranking, st.session_state.passeios_incluidos)
+    ranking_filtrado_combo_setores, ranking_filtrado_setores, ranking_filtrado_geral, mes_ranking_geral = gerar_rankings_filtrados_geral(
+        df_ranking, 
+        st.session_state.passeios_incluidos
+    )
 
     colunas = st.columns(2)
 
-    plotar_graficos_pizza_desempenho_passeios_geral(mes_ranking_geral, ranking_filtrado_geral, colunas)
+    plotar_graficos_pizza_desempenho_passeios_geral(
+        mes_ranking_geral, 
+        ranking_filtrado_geral, 
+        colunas
+    )
 
     st.title('Desempenho Passeios Por Setor')
 
-    plotar_graficos_pizza_desempenho_passeios_por_setor(ranking_filtrado_setores, ranking_filtrado_combo_setores)
+    plotar_graficos_pizza_desempenho_passeios_por_setor(
+        ranking_filtrado_setores, 
+        ranking_filtrado_combo_setores
+    )
 
 else:
 
