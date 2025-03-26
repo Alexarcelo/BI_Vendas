@@ -2719,8 +2719,6 @@ if __name__ == '__main__':
                 mes_ano_fim
             )
 
-        df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
-
         # Filtrando setores selecionados
 
         df_vendas = filtrar_setores_selecionados(
@@ -2736,6 +2734,14 @@ if __name__ == '__main__':
                 df_vendas, 
                 col1
             )
+
+            if st.session_state.base_luck == 'test_phoenix_natal':
+
+                if len(seleciona_hotel)>0:
+
+                    df_guias_in = df_guias_in[df_guias_in['Estabelecimento_Destino'].isin(seleciona_hotel)]
+
+            df_guias_in = df_guias_in.groupby('Guia', as_index=False)['Total_Paxs'].sum()
 
             # Filtra os dados de vendas de acordo com as escolhas do usuário
 
