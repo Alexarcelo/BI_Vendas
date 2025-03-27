@@ -2399,7 +2399,7 @@ if __name__ == '__main__':
                 'Paxs_Total'
             ]
 
-    st.title('Vendas Gerais por Setor')
+    st.title('Vendas Gerais por Setor ')
 
     st.divider()
 
